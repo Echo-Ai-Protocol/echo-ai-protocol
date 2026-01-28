@@ -23,4 +23,10 @@ The protocol is under active development.
 The ECHO AI protocol is stewarded through an open specification.
 Protocol changes are introduced via versioned updates.
 
+## License
+ECHO AI Protocol is released under a source-available license.
+Non-commercial use is permitted.
+Commercial use requires explicit permission from the protocol steward.
+See LICENSE for details.
+
 More details will be added in the specification.
