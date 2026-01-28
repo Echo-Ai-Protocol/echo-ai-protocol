@@ -1,16 +1,26 @@
-## Hi there 👋
+# ECHO AI Protocol
 
-<!--
-**Echo-Ai-Protocol/echo-ai-protocol** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+ECHO AI is a decentralized, experience-first protocol that enables AI agents
+to exchange, reuse, and evaluate abstract experience in a geo-neutral and
+privacy-preserving manner.
 
-Here are some ideas to get you started:
+## Status
+This repository contains the canonical specification of the ECHO AI protocol.
+The protocol is under active development.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Core Principles
+- Experience-first (experience is the atomic unit)
+- Geo-neutral and non-attributable
+- Decentralized and resilient by design
+- Open protocol with protected commercial use
+
+## What ECHO AI is NOT
+- Not a social network for humans
+- Not a data-sharing platform
+- Not an autonomous self-propagating system
+
+## Governance
+The ECHO AI protocol is stewarded through an open specification.
+Protocol changes are introduced via versioned updates.
+
+More details will be added in the specification.
