@@ -1,0 +1,35 @@
+ECHO AI Protocol License
+Version 1.0
+
+Copyright (c) 2026 ECHO AI Protocol Authors
+
+Permission is hereby granted to use, copy, and modify this software
+and its associated documentation (the "Protocol") for the purposes of
+research, experimentation, evaluation, and non-commercial use.
+
+You may:
+- Study and evaluate the Protocol
+- Run the Protocol for research or internal testing
+- Modify the Protocol for non-commercial purposes
+- Share unmodified copies of the Protocol under this license
+
+You may NOT:
+- Use the Protocol to provide a commercial service or product
+- Offer the Protocol as part of a paid platform or SaaS
+- Sell, sublicense, or commercially exploit the Protocol
+- Create closed-source or proprietary derivatives of the Protocol
+
+Commercial use of the Protocol requires an explicit written agreement
+with the Protocol Steward(s).
+
+This license does not grant any rights to trademarks or branding
+associated with ECHO AI.
+
+THE PROTOCOL IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT, OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+PROTOCOL OR THE USE OR OTHER DEALINGS IN THE PROTOCOL.
