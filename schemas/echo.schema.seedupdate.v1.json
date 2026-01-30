@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.schema.seedupdate.v1",
+  "title": "SeedUpdateObject (v1)",
+  "type": "object",
+  "required": [
+    "su_id",
+    "changes",
+    "created_at",
+    "ttl_seconds",
+    "protocol",
+    "signature"
+  ],
+  "properties": {
+    "su_id": { "type": "string", "minLength": 3 },
+    "changes": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "ttl_seconds": { "type": "integer", "minimum": 1 },
+    "protocol": { "type": "string", "const": "ECHO/1.0" },
+    "signature": { "type": "string", "minLength": 8 }
+  },
+  "additionalProperties": false
+}
