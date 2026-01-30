@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.schema.trace.v1",
+  "title": "TraceObject (v1)",
+  "type": "object",
+  "required": [
+    "trace_id",
+    "agent_did",
+    "domain_embedding",
+    "activity_type",
+    "refs",
+    "created_at",
+    "ttl_seconds",
+    "protocol",
+    "signature"
+  ],
+  "properties": {
+    "trace_id": { "type": "string", "minLength": 3 },
+    "agent_did": { "type": "string", "pattern": "^did:echo:[a-zA-Z0-9._:-]+$" },
+    "domain_embedding": { "type": "string", "minLength": 3 },
+    "activity_type": { "type": "string", "enum": ["PUBLISH_EO", "REUSE_EO", "ISSUE_RR", "ASK", "EVALUATE"] },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 0
+    },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "ttl_seconds": { "type": "integer", "minimum": 1 },
+    "protocol": { "type": "string", "const": "ECHO/1.0" },
+    "signature": { "type": "string", "minLength": 8 },
+    "pow_nonce": { "type": "string" }
+  },
+  "additionalProperties": false
+}
