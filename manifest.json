@@ -1,12 +1,46 @@
 {
-  "manifest_version": "0.1",
+  "manifest_version": "0.2",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
   "spec_ref": {
     "type": "github",
     "path": "SPEC.md"
   },
-
+    "docs_index": {
+    "getting_started": "docs/GETTING_STARTED.md",
+    "trace_flow": "docs/TRACE_FLOW.md",
+    "search_semantics": "docs/SEARCH_SEMANTICS.md",
+    "validation_loop": "docs/VALIDATION_LOOP.md",
+    "well_known": "docs/WELL_KNOWN.md",
+    "protocol_identity": "docs/PROTOCOL_IDENTITY.md",
+    "first_contact": "docs/FIRST_CONTACT.md",
+    "directory_layout": "docs/DIRECTORY_LAYOUT.md",
+    "naming_and_versioning": "docs/NAMING_AND_VERSIONING.md",
+    "validation_policy": "docs/VALIDATION_POLICY.md",
+    "security_model": "docs/SECURITY_MODEL.md"
+  },
+  "policy_refs": [
+    {
+      "id": "echo.policy.security",
+      "ref": "docs/SECURITY_MODEL.md"
+    },
+    {
+      "id": "echo.policy.validation",
+      "ref": "docs/VALIDATION_POLICY.md"
+    },
+    {
+      "id": "echo.policy.naming",
+      "ref": "docs/NAMING_AND_VERSIONING.md"
+    },
+    {
+      "id": "echo.policy.layout",
+      "ref": "docs/DIRECTORY_LAYOUT.md"
+    }
+  ],
+  "examples_ref": [
+    "examples/trace.bootstrap.json",
+    "examples/request.bootstrap.json"
+  ],
   "canonical_signing": {
     "algorithm": "ed25519",
     "keys": [
