@@ -1,0 +1,17 @@
+{
+  "rr_id": "echo.rr.example.v1",
+  "issuer_agent_did": "did:echo:example-issuer",
+  "target_eo_id": "echo.eo.example.v1",
+  "context_embedding": "VECTOR_PLACEHOLDER",
+  "applied_constraints_embedding": "VECTOR_PLACEHOLDER",
+  "outcome_metrics": {
+    "effectiveness_score": 0.7,
+    "stability_score": 0.65,
+    "iterations": 2
+  },
+  "verdict": "SUCCESS",
+  "created_at": 0,
+  "protocol": "ECHO/1.0",
+  "signature": "SIGNATURE_PLACEHOLDER",
+  "pow_nonce": "OPTIONAL_POW_NONCE"
+}
