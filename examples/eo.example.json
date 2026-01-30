@@ -1,0 +1,17 @@
+{
+  "eo_id": "echo.eo.example.v1",
+  "problem_embedding": "VECTOR_PLACEHOLDER",
+  "constraints_embedding": "VECTOR_PLACEHOLDER",
+  "solution_embedding": "VECTOR_PLACEHOLDER",
+  "outcome_metrics": {
+    "effectiveness_score": 0.75,
+    "stability_score": 0.7,
+    "iterations": 3
+  },
+  "confidence_score": 0.6,
+  "share_level": "FEDERATED",
+  "created_at": 0,
+  "protocol": "ECHO/1.0",
+  "signature": "SIGNATURE_PLACEHOLDER",
+  "pow_nonce": "OPTIONAL_POW_NONCE"
+}
