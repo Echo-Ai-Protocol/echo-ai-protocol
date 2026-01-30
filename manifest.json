@@ -6,7 +6,8 @@
     "type": "github",
     "path": "SPEC.md"
   },
-    "docs_index": {
+
+  "docs_index": {
     "getting_started": "docs/GETTING_STARTED.md",
     "trace_flow": "docs/TRACE_FLOW.md",
     "search_semantics": "docs/SEARCH_SEMANTICS.md",
@@ -19,6 +20,7 @@
     "validation_policy": "docs/VALIDATION_POLICY.md",
     "security_model": "docs/SECURITY_MODEL.md"
   },
+
   "policy_refs": [
     {
       "id": "echo.policy.security",
@@ -37,10 +39,12 @@
       "ref": "docs/DIRECTORY_LAYOUT.md"
     }
   ],
+
   "examples_ref": [
     "examples/trace.bootstrap.json",
     "examples/request.bootstrap.json"
   ],
+
   "canonical_signing": {
     "algorithm": "ed25519",
     "keys": [
@@ -51,7 +55,6 @@
       }
     ],
     "required_for": [
-      "manifest",
       "seed_updates"
     ]
   },
@@ -124,7 +127,10 @@
         "capabilities",
         "created_at",
         "signature"
-      ]
+      ],
+      "field_conventions": {
+        "creator_field": "agent_did"
+      }
     },
 
     "ExperienceObject": {
@@ -140,7 +146,10 @@
         "created_at",
         "protocol",
         "signature"
-      ]
+      ],
+      "field_conventions": {
+        "creator_field": "agent_did_or_signature_binding"
+      }
     },
 
     "TraceObject": {
@@ -162,7 +171,10 @@
         "ISSUE_RR",
         "ASK",
         "EVALUATE"
-      ]
+      ],
+      "field_conventions": {
+        "creator_field": "agent_did"
+      }
     },
 
     "RequestObject": {
@@ -184,7 +196,10 @@
         "EXPERIMENT_PLAN",
         "IMPLEMENTATION_HINTS",
         "OTHER"
-      ]
+      ],
+      "field_conventions": {
+        "creator_field": "agent_did"
+      }
     },
 
     "ReuseReceipt": {
@@ -199,14 +214,16 @@
         "verdict",
         "created_at",
         "protocol",
-        "pow_nonce",
         "signature"
       ],
       "verdicts": [
         "SUCCESS",
         "PARTIAL",
         "FAIL"
-      ]
+      ],
+      "field_conventions": {
+        "issuer_field": "issuer_agent_did"
+      }
     },
 
     "ReferralObject": {
@@ -220,7 +237,10 @@
         "ttl_seconds",
         "protocol",
         "signature"
-      ]
+      ],
+      "field_conventions": {
+        "issuer_field": "issuer_agent_did"
+      }
     },
 
     "SeedUpdateObject": {
@@ -355,7 +375,12 @@
         "RequestObject",
         "ReferralObject",
         "ReuseReceipt"
-      ]
+      ],
+      "pow_fields": {
+        "nonce_field": "pow_nonce",
+        "optional": true,
+        "note": "If PoW is enabled, objects SHOULD include pow_nonce; implementations MAY reject objects without it depending on local policy."
+      }
     },
 
     "ttl_defaults_seconds": {
@@ -376,6 +401,7 @@
   "notes": [
     "HTTP is read-only. All writes must occur via P2P.",
     "Trace and Request objects are ephemeral and controlled by TTL to avoid permanent profiling.",
-    "ReuseReceipt is the primary validation signal; publication alone does not grant reputation."
+    "ReuseReceipt is the primary validation signal; publication alone does not grant reputation.",
+    "PoW-lite is a policy mechanism; implementations may require pow_nonce depending on local anti-abuse settings."
   ]
 }
