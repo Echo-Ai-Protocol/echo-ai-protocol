@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.schema.rr.v1",
+  "title": "ReuseReceipt (v1)",
+  "type": "object",
+  "required": [
+    "rr_id",
+    "issuer_agent_did",
+    "target_eo_id",
+    "context_embedding",
+    "applied_constraints_embedding",
+    "outcome_metrics",
+    "verdict",
+    "created_at",
+    "protocol",
+    "signature"
+  ],
+  "properties": {
+    "rr_id": { "type": "string", "minLength": 3 },
+    "issuer_agent_did": { "type": "string", "pattern": "^did:echo:[a-zA-Z0-9._:-]+$" },
+    "target_eo_id": { "type": "string", "minLength": 3 },
+    "context_embedding": { "type": "string", "minLength": 3 },
+    "applied_constraints_embedding": { "type": "string", "minLength": 3 },
+    "outcome_metrics": {
+      "type": "object",
+      "required": ["effectiveness_score", "stability_score", "iterations"],
+      "properties": {
+        "effectiveness_score": { "type": "number", "minimum": 0 },
+        "stability_score": { "type": "number", "minimum": 0 },
+        "iterations": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "verdict": { "type": "string", "enum": ["SUCCESS", "PARTIAL", "FAIL"] },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "protocol": { "type": "string", "const": "ECHO/1.0" },
+    "signature": { "type": "string", "minLength": 8 },
+    "pow_nonce": { "type": "string" }
+  },
+  "additionalProperties": false
+}
