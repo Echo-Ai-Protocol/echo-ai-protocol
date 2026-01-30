@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.schema.eo.v1",
+  "title": "ExperienceObject (v1)",
+  "type": "object",
+  "required": [
+    "eo_id",
+    "problem_embedding",
+    "constraints_embedding",
+    "solution_embedding",
+    "outcome_metrics",
+    "confidence_score",
+    "share_level",
+    "created_at",
+    "protocol",
+    "signature"
+  ],
+  "properties": {
+    "eo_id": { "type": "string", "minLength": 3 },
+    "problem_embedding": { "type": "string", "minLength": 3 },
+    "constraints_embedding": { "type": "string", "minLength": 3 },
+    "solution_embedding": { "type": "string", "minLength": 3 },
+    "outcome_metrics": {
+      "type": "object",
+      "required": ["effectiveness_score", "stability_score", "iterations"],
+      "properties": {
+        "effectiveness_score": { "type": "number", "minimum": 0 },
+        "stability_score": { "type": "number", "minimum": 0 },
+        "iterations": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "confidence_score": { "type": "number", "minimum": 0 },
+    "share_level": { "type": "string", "enum": ["PRIVATE", "FEDERATED", "GLOBAL_ABSTRACT"] },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "protocol": { "type": "string", "const": "ECHO/1.0" },
+    "signature": { "type": "string", "minLength": 8 },
+    "pow_nonce": { "type": "string" }
+  },
+  "additionalProperties": false
+}
