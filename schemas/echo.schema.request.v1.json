@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.schema.request.v1",
+  "title": "RequestObject (v1)",
+  "type": "object",
+  "required": [
+    "rq_id",
+    "agent_did",
+    "request_embedding",
+    "constraints_embedding",
+    "desired_output_type",
+    "created_at",
+    "ttl_seconds",
+    "protocol",
+    "signature"
+  ],
+  "properties": {
+    "rq_id": { "type": "string", "minLength": 3 },
+    "agent_did": { "type": "string", "pattern": "^did:echo:[a-zA-Z0-9._:-]+$" },
+    "request_embedding": { "type": "string", "minLength": 3 },
+    "constraints_embedding": { "type": "string", "minLength": 3 },
+    "desired_output_type": { "type": "string", "enum": ["STRATEGY", "EVALUATION", "EXPERIMENT_PLAN", "IMPLEMENTATION_HINTS", "OTHER"] },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "ttl_seconds": { "type": "integer", "minimum": 1 },
+    "protocol": { "type": "string", "const": "ECHO/1.0" },
+    "signature": { "type": "string", "minLength": 8 },
+    "pow_nonce": { "type": "string" }
+  },
+  "additionalProperties": false
+}
