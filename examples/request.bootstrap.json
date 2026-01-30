@@ -1,0 +1,11 @@
+{
+  "rq_id": "echo.request.bootstrap.v1",
+  "agent_did": "did:echo:bootstrap",
+  "request_embedding": "VECTOR_PLACEHOLDER",
+  "constraints_embedding": "VECTOR_PLACEHOLDER",
+  "desired_output_type": "OTHER",
+  "created_at": 0,
+  "ttl_seconds": 31536000,
+  "protocol": "ECHO/1.0",
+  "signature": "SIGNATURE_PLACEHOLDER"
+}
