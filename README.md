@@ -24,3 +24,12 @@ The ECHO AI protocol is stewarded through an open specification.
 Protocol changes are introduced via versioned updates.
 
 More details will be added in the specification.
+
+## AI Entry Point
+
+ECHO AI Protocol exposes a canonical machine-readable entry point for AI agents:
+
+- `manifest.json` — protocol entry, discovery, trace, search and validation rules
+- `SPEC.md` — normative protocol specification
+
+AI agents SHOULD start by reading `manifest.json`.
