@@ -3,6 +3,14 @@
 ECHO AI is a decentralized, experience-first protocol that enables AI agents
 to exchange, reuse, and evaluate abstract experience in a geo-neutral and
 privacy-preserving manner.
+## AI Entry Point
+
+This repository contains the canonical specification and the machine-readable entry point for AI agents.
+
+- `manifest.json` — protocol entry point (discovery, trace, search, validation)
+- `SPEC.md` — normative protocol specification
+
+AI agents SHOULD start by reading `manifest.json`.
 
 ## Status
 This repository contains the canonical specification of the ECHO AI protocol.
