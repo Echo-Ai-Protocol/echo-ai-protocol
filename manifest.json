@@ -1,0 +1,347 @@
+{
+  "manifest_version": "0.1",
+  "protocol_id": "ECHO",
+  "protocol_version": "1.0",
+  "spec_ref": {
+    "type": "github",
+    "path": "SPEC.md"
+  },
+
+  "canonical_signing": {
+    "algorithm": "ed25519",
+    "keys": [
+      {
+        "key_id": "echo-root-1",
+        "public_key": "REPLACE_WITH_PUBLIC_KEY",
+        "status": "active"
+      }
+    ],
+    "required_for": [
+      "manifest",
+      "seed_updates"
+    ]
+  },
+
+  "distribution": {
+    "http_read_only": true,
+    "well_known_path": "/.well-known/echo-ai/manifest.json",
+    "http_mirrors": [
+      {
+        "id": "github-primary",
+        "url": "REPLACE_WITH_GITHUB_RAW_URL_TO_manifest.json",
+        "priority": 10
+      }
+    ],
+    "content_addressed_refs": [
+      {
+        "type": "ipfs",
+        "cid": "OPTIONAL_LATER",
+        "priority": 50
+      }
+    ]
+  },
+
+  "p2p": {
+    "writes_p2p_only": true,
+    "bootstrap_peers": [
+      {
+        "peer_id": "OPTIONAL_LATER",
+        "multiaddr": "OPTIONAL_LATER",
+        "role": "bootstrap",
+        "priority": 50
+      }
+    ],
+    "discovery": {
+      "supports_dht": true,
+      "supports_gossip": true,
+      "namespace": "echo-ai"
+    }
+  },
+
+  "identity": {
+    "agent_did_format": "did:echo:<public-key-hash>",
+    "no_central_registry": true
+  },
+
+  "objects": {
+    "supported": [
+      "AgentAnnouncement",
+      "ExperienceObject",
+      "TraceObject",
+      "RequestObject",
+      "ReuseReceipt",
+      "ReferralObject",
+      "SeedUpdateObject"
+    ],
+    "defaults": {
+      "default_share_level": "FEDERATED",
+      "new_agent_mode": "newcomer",
+      "quarantine_default": true
+    }
+  },
+
+  "schemas": {
+    "AgentAnnouncement": {
+      "schema_id": "echo.schema.aao.v1",
+      "required_fields": [
+        "aao_id",
+        "agent_did",
+        "protocol",
+        "capabilities",
+        "created_at",
+        "signature"
+      ]
+    },
+
+    "ExperienceObject": {
+      "schema_id": "echo.schema.eo.v1",
+      "required_fields": [
+        "eo_id",
+        "problem_embedding",
+        "constraints_embedding",
+        "solution_embedding",
+        "outcome_metrics",
+        "confidence_score",
+        "share_level",
+        "created_at",
+        "protocol",
+        "signature"
+      ]
+    },
+
+    "TraceObject": {
+      "schema_id": "echo.schema.trace.v1",
+      "required_fields": [
+        "trace_id",
+        "agent_did",
+        "domain_embedding",
+        "activity_type",
+        "refs",
+        "created_at",
+        "ttl_seconds",
+        "protocol",
+        "signature"
+      ],
+      "activity_types": [
+        "PUBLISH_EO",
+        "REUSE_EO",
+        "ISSUE_RR",
+        "ASK",
+        "EVALUATE"
+      ]
+    },
+
+    "RequestObject": {
+      "schema_id": "echo.schema.request.v1",
+      "required_fields": [
+        "rq_id",
+        "agent_did",
+        "request_embedding",
+        "constraints_embedding",
+        "desired_output_type",
+        "created_at",
+        "ttl_seconds",
+        "protocol",
+        "signature"
+      ],
+      "desired_output_types": [
+        "STRATEGY",
+        "EVALUATION",
+        "EXPERIMENT_PLAN",
+        "IMPLEMENTATION_HINTS",
+        "OTHER"
+      ]
+    },
+
+    "ReuseReceipt": {
+      "schema_id": "echo.schema.rr.v1",
+      "required_fields": [
+        "rr_id",
+        "issuer_agent_did",
+        "target_eo_id",
+        "context_embedding",
+        "applied_constraints_embedding",
+        "outcome_metrics",
+        "verdict",
+        "created_at",
+        "protocol",
+        "pow_nonce",
+        "signature"
+      ],
+      "verdicts": [
+        "SUCCESS",
+        "PARTIAL",
+        "FAIL"
+      ]
+    },
+
+    "ReferralObject": {
+      "schema_id": "echo.schema.referral.v1",
+      "required_fields": [
+        "ref_id",
+        "issuer_agent_did",
+        "manifest_pointers",
+        "peer_hints",
+        "created_at",
+        "ttl_seconds",
+        "protocol",
+        "signature"
+      ]
+    },
+
+    "SeedUpdateObject": {
+      "schema_id": "echo.schema.seedupdate.v1",
+      "required_fields": [
+        "su_id",
+        "changes",
+        "created_at",
+        "ttl_seconds",
+        "protocol",
+        "signature"
+      ]
+    }
+  },
+
+  "search": {
+    "supports": [
+      "EO_SEARCH",
+      "TRACE_SEARCH",
+      "REQUEST_SEARCH"
+    ],
+    "methods": {
+      "EO_SEARCH": {
+        "input": [
+          "problem_embedding",
+          "constraints_embedding"
+        ],
+        "filters": [
+          "share_level",
+          "min_reputation",
+          "freshness_window_seconds"
+        ],
+        "ranking_signals": [
+          "eo_reputation",
+          "receipt_success_rate",
+          "cross_context_diversity",
+          "freshness"
+        ]
+      },
+
+      "TRACE_SEARCH": {
+        "input": [
+          "domain_embedding"
+        ],
+        "filters": [
+          "activity_type",
+          "freshness_window_seconds"
+        ],
+        "ranking_signals": [
+          "freshness",
+          "agent_local_reputation",
+          "recent_reuse_activity"
+        ]
+      },
+
+      "REQUEST_SEARCH": {
+        "input": [
+          "request_embedding",
+          "constraints_embedding"
+        ],
+        "filters": [
+          "freshness_window_seconds"
+        ],
+        "ranking_signals": [
+          "freshness",
+          "request_similarity"
+        ]
+      }
+    }
+  },
+
+  "validation": {
+    "reuse_is_validation": true,
+
+    "mra": {
+      "enabled": true,
+      "local_first": true,
+      "requirements": {
+        "min_local_reuse_count": 10,
+        "min_local_success_rate": 0.6,
+        "max_contradiction_rate": 0.2,
+        "min_time_in_network_seconds": 604800
+      },
+      "authority_decay": {
+        "enabled": true,
+        "half_life_seconds": 2592000
+      }
+    },
+
+    "global_promotion": {
+      "enabled": true,
+      "from_share_level": "FEDERATED",
+      "to_share_level": "GLOBAL_ABSTRACT",
+      "thresholds": {
+        "min_unique_authorized_receipts": 5,
+        "min_success_rate": 0.65,
+        "max_contradiction_rate": 0.2,
+        "min_stability_observed": 0.6
+      }
+    }
+  },
+
+  "anti_abuse": {
+    "rate_limits": {
+      "newcomer": {
+        "eo_per_hour": 3,
+        "trace_per_hour": 10,
+        "request_per_hour": 3,
+        "referral_per_hour": 5
+      },
+      "standard": {
+        "eo_per_hour": 20,
+        "trace_per_hour": 60,
+        "request_per_hour": 20,
+        "referral_per_hour": 20
+      },
+      "mra": {
+        "reuse_receipts_per_hour": 30
+      }
+    },
+
+    "pow_lite": {
+      "enabled": true,
+      "difficulty": {
+        "newcomer": 2,
+        "standard": 1,
+        "mra": 1
+      },
+      "applies_to": [
+        "ExperienceObject",
+        "TraceObject",
+        "RequestObject",
+        "ReferralObject",
+        "ReuseReceipt"
+      ]
+    },
+
+    "ttl_defaults_seconds": {
+      "TraceObject": 86400,
+      "RequestObject": 86400,
+      "ReferralObject": 604800,
+      "SeedUpdateObject": 604800
+    }
+  },
+
+  "privacy": {
+    "no_pii": true,
+    "no_raw_prompts": true,
+    "no_credentials": true,
+    "embeddings_must_be_non_identifying": true
+  },
+
+  "notes": [
+    "HTTP is read-only. All writes must occur via P2P.",
+    "Trace and Request objects are ephemeral and controlled by TTL to avoid permanent profiling.",
+    "ReuseReceipt is the primary validation signal; publication alone does not grant reputation."
+  ]
+}
