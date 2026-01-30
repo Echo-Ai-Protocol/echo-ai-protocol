@@ -1,0 +1,14 @@
+{
+  "trace_id": "echo.trace.bootstrap.v1",
+  "agent_did": "did:echo:bootstrap",
+  "domain_embedding": "VECTOR_PLACEHOLDER",
+  "activity_type": "PUBLISH_EO",
+  "refs": [
+    "manifest.json",
+    "SPEC.md"
+  ],
+  "created_at": 0,
+  "ttl_seconds": 31536000,
+  "protocol": "ECHO/1.0",
+  "signature": "SIGNATURE_PLACEHOLDER"
+}
