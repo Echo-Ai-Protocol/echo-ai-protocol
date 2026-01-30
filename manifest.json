@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.2",
+  "manifest_version": "0.3",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
   "spec_ref": {
@@ -44,6 +44,22 @@
     "examples/trace.bootstrap.json",
     "examples/request.bootstrap.json"
   ],
+  
+    "schema_index_ref": "schemas/echo.schema.index.json",
+  "schema_files": {
+    "AgentAnnouncement": "schemas/echo.schema.aao.v1.json",
+    "ExperienceObject": "schemas/echo.schema.eo.v1.json",
+    "TraceObject": "schemas/echo.schema.trace.v1.json",
+    "RequestObject": "schemas/echo.schema.request.v1.json",
+    "ReuseReceipt": "schemas/echo.schema.rr.v1.json",
+    "ReferralObject": "schemas/echo.schema.referral.v1.json",
+    "SeedUpdateObject": "schemas/echo.schema.seedupdate.v1.json"
+  },
+  
+  "schema_policy": {
+    "schemas_are_structural_truth": true,
+    "spec_is_semantic_truth": true
+  },
 
   "canonical_signing": {
     "algorithm": "ed25519",
