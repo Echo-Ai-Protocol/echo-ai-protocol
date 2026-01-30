@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.schema.index.v1",
+  "title": "ECHO AI Schema Index (v1)",
+  "type": "object",
+  "required": [
+    "protocol",
+    "protocol_version",
+    "schemas"
+  ],
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "const": "ECHO"
+    },
+    "protocol_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "schemas": {
+      "type": "object",
+      "required": [
+        "AgentAnnouncement",
+        "ExperienceObject",
+        "TraceObject",
+        "RequestObject",
+        "ReuseReceipt",
+        "ReferralObject",
+        "SeedUpdateObject"
+      ],
+      "properties": {
+        "AgentAnnouncement": {
+          "$ref": "./echo.schema.aao.v1.json"
+        },
+        "ExperienceObject": {
+          "$ref": "./echo.schema.eo.v1.json"
+        },
+        "TraceObject": {
+          "$ref": "./echo.schema.trace.v1.json"
+        },
+        "RequestObject": {
+          "$ref": "./echo.schema.request.v1.json"
+        },
+        "ReuseReceipt": {
+          "$ref": "./echo.schema.rr.v1.json"
+        },
+        "ReferralObject": {
+          "$ref": "./echo.schema.referral.v1.json"
+        },
+        "SeedUpdateObject": {
+          "$ref": "./echo.schema.seedupdate.v1.json"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
