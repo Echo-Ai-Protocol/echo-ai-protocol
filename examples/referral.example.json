@@ -1,0 +1,18 @@
+{
+  "ref_id": "echo.referral.example.v1",
+  "issuer_agent_did": "did:echo:bootstrap",
+  "manifest_pointers": [
+    "manifest.json",
+    "discovery.json",
+    ".well-known/echo-ai/manifest.json"
+  ],
+  "peer_hints": [
+    "Use semantic search to discover ExperienceObjects",
+    "Validate via reuse receipts only"
+  ],
+  "created_at": 0,
+  "ttl_seconds": 604800,
+  "protocol": "ECHO/1.0",
+  "signature": "SIGNATURE_PLACEHOLDER",
+  "pow_nonce": "OPTIONAL_POW_NONCE"
+}
