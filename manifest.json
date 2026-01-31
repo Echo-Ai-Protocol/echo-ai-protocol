@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.5",
+  "manifest_version": "0.6",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
   "spec_ref": {
@@ -21,6 +21,10 @@
     "security_model": "docs/SECURITY_MODEL.md"
     "reference_node": "docs/REFERENCE_NODE.md"
     "reference_node_api": "docs/REFERENCE_NODE_API.md"
+    "threat_model": "docs/THREAT_MODEL.md"
+    "adversarial_scenarios": "docs/ADVERSARIAL_SCENARIOS.md"
+    "resilience_metrics": "docs/RESILIENCE_METRICS.md"
+    "threat_test_checklist": "docs/THREAT_TEST_CHECKLIST.md"
   },
   "discovery_refs": {
   "discovery_manifest": "discovery.json",
