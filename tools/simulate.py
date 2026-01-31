@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 """
 ECHO Minimal Simulator (v0.7.1)
 
@@ -366,8 +367,19 @@ def simulate_experiment(state: Dict[str, Any], params: Params, seed: int = 42) -
 
 def main():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    state_path = os.path.join(repo_root, "examples", "simulation", "state.template.json")
+
+    # --- NEW: read state file from CLI args ---
+    if len(sys.argv) > 1:
+        state_arg = sys.argv[1]
+        state_path = os.path.join(repo_root, state_arg)
+    else:
+        state_path = os.path.join(
+            repo_root, "examples", "simulation", "state.template.json"
+        )
+
     manifest_path = os.path.join(repo_root, "manifest.json")
+
+    print("Using state file:", state_path)
 
     state = load_json(state_path)
     manifest = load_json(manifest_path)
@@ -377,19 +389,30 @@ def main():
 
     print("\nECHO Minimal Simulator Report (v0.7.1)\n")
     print("Agents total:", report["agents_total"])
-    print("EOs total:", report["objects"]["eos_total"], "| useful:", report["objects"]["eos_useful"], "| bad:", report["objects"]["eos_bad"])
+    print(
+        "EOs total:",
+        report["objects"]["eos_total"],
+        "| useful:",
+        report["objects"]["eos_useful"],
+        "| bad:",
+        report["objects"]["eos_bad"],
+    )
     print("\nMetrics:")
     for k, v in report["metrics"].items():
         print(f"  - {k}: {v}")
 
     out_dir = os.path.join(repo_root, "tools", "out")
     os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "sim_report.json")
+
+    state_name = os.path.basename(state_path).replace(".json", "")
+    out_path = os.path.join(out_dir, f"sim_report_{state_name}.json")
+
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
     print("\nWrote:", out_path)
-    print("\nNext: create multiple state files for E0..E6 and run per experiment.\n")
+    print("\nRun another scenario by passing a different state file.\n")
+
 
 
 if __name__ == "__main__":
