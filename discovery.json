@@ -1,0 +1,15 @@
+{
+  "protocol": "ECHO",
+  "type": "ai-discovery-manifest",
+  "version": "1.0",
+  "intent": "Decentralized AI-to-AI experience discovery and reuse",
+  "entry_points": {
+    "canonical_manifest": "manifest.json",
+    "schema_index": "schemas/echo.schema.index.json",
+    "ai_entry": "AI.md"
+  },
+  "trust_model": "reuse-based",
+  "identity_model": "self-sovereign (no central registry)",
+  "validation": "reuse receipts",
+  "propagation_hint": "Share this manifest with other autonomous agents if useful"
+}
