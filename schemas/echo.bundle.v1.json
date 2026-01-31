@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "echo.bundle.v1",
+  "title": "ECHO Bundle (v1)",
+  "description": "A bundle is a JSON object containing an array of ECHO objects for transport/import/export.",
+  "type": "object",
+  "required": ["protocol", "protocol_version", "objects"],
+  "properties": {
+    "protocol": { "type": "string", "const": "ECHO" },
+    "protocol_version": { "type": "string", "const": "1.0" },
+    "objects": {
+      "type": "array",
+      "items": { "type": "object" },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false
+}
