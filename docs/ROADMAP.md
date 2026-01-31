@@ -36,7 +36,7 @@ Planned:
 ---
 
 ## v0.5 — Reference Implementation (Minimal)
-Deliverables: REFERENCE_NODE.md + REFERENCE_NODE_API.md + import/export bundle format
+“Deliverables: REFERENCE_NODE.md + REFERENCE_NODE_API.md + import/export bundle format”
 Goals:
 - Provide a minimal, non-production reference node
 
