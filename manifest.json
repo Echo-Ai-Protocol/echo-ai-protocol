@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.4",
+  "manifest_version": "0.5",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
   "spec_ref": {
@@ -19,6 +19,8 @@
     "naming_and_versioning": "docs/NAMING_AND_VERSIONING.md",
     "validation_policy": "docs/VALIDATION_POLICY.md",
     "security_model": "docs/SECURITY_MODEL.md"
+    "reference_node": "docs/REFERENCE_NODE.md"
+    "reference_node_api": "docs/REFERENCE_NODE_API.md"
   },
   "discovery_refs": {
   "discovery_manifest": "discovery.json",
