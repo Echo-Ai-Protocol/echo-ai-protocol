@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.3",
+  "manifest_version": "0.4",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
   "spec_ref": {
@@ -20,6 +20,11 @@
     "validation_policy": "docs/VALIDATION_POLICY.md",
     "security_model": "docs/SECURITY_MODEL.md"
   },
+  "discovery_refs": {
+  "discovery_manifest": "discovery.json",
+  "well_known": ".well-known/echo-ai/manifest.json",
+  "referral_example": "examples/referral.example.json"
+},
 
   "policy_refs": [
     {
