@@ -1,0 +1,6 @@
+{
+  "protocol": "ECHO",
+  "well_known": true,
+  "canonical": "../../manifest.json",
+  "discovery": "../../discovery.json"
+}
