@@ -1,0 +1,23 @@
+{
+  "simulation_version": "v0.7",
+  "tick_seconds": 3600,
+  "duration_ticks": 168,
+  "agents": { "honest": 14, "noisy": 4, "adversarial": 2 },
+  "attack_profile": {
+    "trace_flood_multiplier": 1,
+    "request_spam_multiplier": 10,
+    "eo_poisoning_rate": 0,
+    "receipt_farming_enabled": false,
+    "receipt_replay_enabled": false
+  },
+  "protocol_params_ref": "manifest.json",
+  "metrics_to_record": [
+    "D1_useful_top5",
+    "D2_time_to_find",
+    "T1_false_promotion_rate",
+    "T2_missed_promotion_rate",
+    "A1_spam_survival_rate",
+    "P1_avg_trace_lifetime",
+    "C1_bootstrap_success"
+  ]
+}
