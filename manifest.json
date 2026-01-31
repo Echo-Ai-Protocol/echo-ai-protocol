@@ -1,7 +1,8 @@
 {
-  "manifest_version": "0.6",
+  "manifest_version": "0.6.1",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
+
   "spec_ref": {
     "type": "github",
     "path": "SPEC.md"
@@ -12,59 +13,48 @@
     "trace_flow": "docs/TRACE_FLOW.md",
     "search_semantics": "docs/SEARCH_SEMANTICS.md",
     "validation_loop": "docs/VALIDATION_LOOP.md",
+
     "well_known": "docs/WELL_KNOWN.md",
     "protocol_identity": "docs/PROTOCOL_IDENTITY.md",
     "first_contact": "docs/FIRST_CONTACT.md",
+
     "directory_layout": "docs/DIRECTORY_LAYOUT.md",
     "naming_and_versioning": "docs/NAMING_AND_VERSIONING.md",
     "validation_policy": "docs/VALIDATION_POLICY.md",
-    "security_model": "docs/SECURITY_MODEL.md"
-    "reference_node": "docs/REFERENCE_NODE.md"
-    "reference_node_api": "docs/REFERENCE_NODE_API.md"
-    "threat_model": "docs/THREAT_MODEL.md"
-    "adversarial_scenarios": "docs/ADVERSARIAL_SCENARIOS.md"
-    "resilience_metrics": "docs/RESILIENCE_METRICS.md"
-    "threat_test_checklist": "docs/THREAT_TEST_CHECKLIST.md"
+    "security_model": "docs/SECURITY_MODEL.md",
+
+    "reference_node": "docs/REFERENCE_NODE.md",
+    "reference_node_api": "docs/REFERENCE_NODE_API.md",
+
+    "threat_model": "docs/THREAT_MODEL.md",
+    "adversarial_scenarios": "docs/ADVERSARIAL_SCENARIOS.md",
+    "resilience_metrics": "docs/RESILIENCE_METRICS.md",
+    "threat_test_checklist": "docs/THREAT_TEST_CHECKLIST.md",
+    "adversarial_tuning": "docs/ADVERSARIAL_TUNING.md"
   },
-  "discovery_refs": {
-  "discovery_manifest": "discovery.json",
-  "well_known": ".well-known/echo-ai/manifest.json",
-  "referral_example": "examples/referral.example.json"
-},
 
   "policy_refs": [
-    {
-      "id": "echo.policy.security",
-      "ref": "docs/SECURITY_MODEL.md"
-    },
-    {
-      "id": "echo.policy.validation",
-      "ref": "docs/VALIDATION_POLICY.md"
-    },
-    {
-      "id": "echo.policy.naming",
-      "ref": "docs/NAMING_AND_VERSIONING.md"
-    },
-    {
-      "id": "echo.policy.layout",
-      "ref": "docs/DIRECTORY_LAYOUT.md"
-    }
+    { "id": "echo.policy.security", "ref": "docs/SECURITY_MODEL.md" },
+    { "id": "echo.policy.validation", "ref": "docs/VALIDATION_POLICY.md" },
+    { "id": "echo.policy.naming", "ref": "docs/NAMING_AND_VERSIONING.md" },
+    { "id": "echo.policy.layout", "ref": "docs/DIRECTORY_LAYOUT.md" }
   ],
 
   "examples_ref": [
     "examples/trace.bootstrap.json",
-    "examples/request.bootstrap.json"
+    "examples/request.bootstrap.json",
+    "examples/eo.example.json",
+    "examples/rr.example.json",
+    "examples/referral.example.json"
   ],
-  
-  "bundle_schema_ref": "schemas/echo.bundle.v1.json",
-"bundle_format": {
-  "preferred": "jsonl",
-  "alternate": "bundle-json",
-  "jsonl_note": "One JSON object per line; each line must validate against one of the ECHO object schemas.",
-  "bundle_json_note": "If using bundle-json, validate against schemas/echo.bundle.v1.json"
-},
 
-    "schema_index_ref": "schemas/echo.schema.index.json",
+  "discovery_refs": {
+    "discovery_manifest": "discovery.json",
+    "well_known": ".well-known/echo-ai/manifest.json",
+    "referral_example": "examples/referral.example.json"
+  },
+
+  "schema_index_ref": "schemas/echo.schema.index.json",
   "schema_files": {
     "AgentAnnouncement": "schemas/echo.schema.aao.v1.json",
     "ExperienceObject": "schemas/echo.schema.eo.v1.json",
@@ -74,10 +64,17 @@
     "ReferralObject": "schemas/echo.schema.referral.v1.json",
     "SeedUpdateObject": "schemas/echo.schema.seedupdate.v1.json"
   },
-  
   "schema_policy": {
     "schemas_are_structural_truth": true,
     "spec_is_semantic_truth": true
+  },
+
+  "bundle_schema_ref": "schemas/echo.bundle.v1.json",
+  "bundle_format": {
+    "preferred": "jsonl",
+    "alternate": "bundle-json",
+    "jsonl_note": "One JSON object per line; each line must validate against one of the ECHO object schemas.",
+    "bundle_json_note": "If using bundle-json, validate against schemas/echo.bundle.v1.json"
   },
 
   "canonical_signing": {
@@ -89,9 +86,7 @@
         "status": "active"
       }
     ],
-    "required_for": [
-      "seed_updates"
-    ]
+    "required_for": ["seed_updates"]
   },
 
   "distribution": {
@@ -162,10 +157,7 @@
         "capabilities",
         "created_at",
         "signature"
-      ],
-      "field_conventions": {
-        "creator_field": "agent_did"
-      }
+      ]
     },
 
     "ExperienceObject": {
@@ -181,10 +173,7 @@
         "created_at",
         "protocol",
         "signature"
-      ],
-      "field_conventions": {
-        "creator_field": "agent_did_or_signature_binding"
-      }
+      ]
     },
 
     "TraceObject": {
@@ -200,16 +189,7 @@
         "protocol",
         "signature"
       ],
-      "activity_types": [
-        "PUBLISH_EO",
-        "REUSE_EO",
-        "ISSUE_RR",
-        "ASK",
-        "EVALUATE"
-      ],
-      "field_conventions": {
-        "creator_field": "agent_did"
-      }
+      "activity_types": ["PUBLISH_EO", "REUSE_EO", "ISSUE_RR", "ASK", "EVALUATE"]
     },
 
     "RequestObject": {
@@ -231,10 +211,7 @@
         "EXPERIMENT_PLAN",
         "IMPLEMENTATION_HINTS",
         "OTHER"
-      ],
-      "field_conventions": {
-        "creator_field": "agent_did"
-      }
+      ]
     },
 
     "ReuseReceipt": {
@@ -251,14 +228,7 @@
         "protocol",
         "signature"
       ],
-      "verdicts": [
-        "SUCCESS",
-        "PARTIAL",
-        "FAIL"
-      ],
-      "field_conventions": {
-        "issuer_field": "issuer_agent_did"
-      }
+      "verdicts": ["SUCCESS", "PARTIAL", "FAIL"]
     },
 
     "ReferralObject": {
@@ -272,10 +242,7 @@
         "ttl_seconds",
         "protocol",
         "signature"
-      ],
-      "field_conventions": {
-        "issuer_field": "issuer_agent_did"
-      }
+      ]
     },
 
     "SeedUpdateObject": {
@@ -292,22 +259,11 @@
   },
 
   "search": {
-    "supports": [
-      "EO_SEARCH",
-      "TRACE_SEARCH",
-      "REQUEST_SEARCH"
-    ],
+    "supports": ["EO_SEARCH", "TRACE_SEARCH", "REQUEST_SEARCH"],
     "methods": {
       "EO_SEARCH": {
-        "input": [
-          "problem_embedding",
-          "constraints_embedding"
-        ],
-        "filters": [
-          "share_level",
-          "min_reputation",
-          "freshness_window_seconds"
-        ],
+        "input": ["problem_embedding", "constraints_embedding"],
+        "filters": ["share_level", "min_reputation", "freshness_window_seconds"],
         "ranking_signals": [
           "eo_reputation",
           "receipt_success_rate",
@@ -317,13 +273,8 @@
       },
 
       "TRACE_SEARCH": {
-        "input": [
-          "domain_embedding"
-        ],
-        "filters": [
-          "activity_type",
-          "freshness_window_seconds"
-        ],
+        "input": ["domain_embedding"],
+        "filters": ["activity_type", "freshness_window_seconds"],
         "ranking_signals": [
           "freshness",
           "agent_local_reputation",
@@ -332,17 +283,9 @@
       },
 
       "REQUEST_SEARCH": {
-        "input": [
-          "request_embedding",
-          "constraints_embedding"
-        ],
-        "filters": [
-          "freshness_window_seconds"
-        ],
-        "ranking_signals": [
-          "freshness",
-          "request_similarity"
-        ]
+        "input": ["request_embedding", "constraints_embedding"],
+        "filters": ["freshness_window_seconds"],
+        "ranking_signals": ["freshness", "request_similarity"]
       }
     }
   },
@@ -361,7 +304,7 @@
       },
       "authority_decay": {
         "enabled": true,
-        "half_life_seconds": 2592000
+        "half_life_seconds": 1814400
       }
     },
 
@@ -370,10 +313,10 @@
       "from_share_level": "FEDERATED",
       "to_share_level": "GLOBAL_ABSTRACT",
       "thresholds": {
-        "min_unique_authorized_receipts": 5,
-        "min_success_rate": 0.65,
-        "max_contradiction_rate": 0.2,
-        "min_stability_observed": 0.6
+        "min_unique_authorized_receipts": 7,
+        "min_success_rate": 0.7,
+        "max_contradiction_rate": 0.15,
+        "min_stability_observed": 0.7
       }
     }
   },
@@ -381,16 +324,18 @@
   "anti_abuse": {
     "rate_limits": {
       "newcomer": {
-        "eo_per_hour": 3,
-        "trace_per_hour": 10,
-        "request_per_hour": 3,
-        "referral_per_hour": 5
+        "eo_per_hour": 2,
+        "trace_per_hour": 8,
+        "request_per_hour": 2,
+        "referral_per_hour": 2,
+        "reuse_receipts_per_hour": 10
       },
       "standard": {
-        "eo_per_hour": 20,
-        "trace_per_hour": 60,
-        "request_per_hour": 20,
-        "referral_per_hour": 20
+        "eo_per_hour": 12,
+        "trace_per_hour": 40,
+        "request_per_hour": 10,
+        "referral_per_hour": 10,
+        "reuse_receipts_per_hour": 20
       },
       "mra": {
         "reuse_receipts_per_hour": 30
@@ -414,14 +359,14 @@
       "pow_fields": {
         "nonce_field": "pow_nonce",
         "optional": true,
-        "note": "If PoW is enabled, objects SHOULD include pow_nonce; implementations MAY reject objects without it depending on local policy."
+        "note": "If PoW is enabled locally, objects SHOULD include pow_nonce; implementations MAY reject objects without it depending on local policy."
       }
     },
 
     "ttl_defaults_seconds": {
-      "TraceObject": 86400,
-      "RequestObject": 86400,
-      "ReferralObject": 604800,
+      "TraceObject": 21600,
+      "RequestObject": 43200,
+      "ReferralObject": 259200,
       "SeedUpdateObject": 604800
     }
   },
@@ -437,6 +382,7 @@
     "HTTP is read-only. All writes must occur via P2P.",
     "Trace and Request objects are ephemeral and controlled by TTL to avoid permanent profiling.",
     "ReuseReceipt is the primary validation signal; publication alone does not grant reputation.",
-    "PoW-lite is a policy mechanism; implementations may require pow_nonce depending on local anti-abuse settings."
+    "PoW-lite is a policy mechanism; implementations may require pow_nonce depending on local anti-abuse settings.",
+    "Threat simulation pack informs tuning: conservative promotion, short TTL for traces, local-first trust."
   ]
 }
