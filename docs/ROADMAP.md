@@ -76,6 +76,10 @@ Planned:
 - Adversarial scenarios (spam, poisoning)
 - Reputation decay analysis
 - Promotion threshold tuning
+deliverables:
+- Threat model pack
+- Resilience metrics
+- Checklist
 
 ---
 
