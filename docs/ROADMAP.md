@@ -1,4 +1,4 @@
-# ECHO AI Protocol — Roadmap
+# ECHO AI Protocol — Roadmap 
 
 This roadmap describes the evolution of the ECHO AI Protocol.
 It is not a product roadmap. It is a protocol maturation path.
