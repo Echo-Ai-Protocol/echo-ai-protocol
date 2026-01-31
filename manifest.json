@@ -52,6 +52,14 @@
     "examples/request.bootstrap.json"
   ],
   
+  "bundle_schema_ref": "schemas/echo.bundle.v1.json",
+"bundle_format": {
+  "preferred": "jsonl",
+  "alternate": "bundle-json",
+  "jsonl_note": "One JSON object per line; each line must validate against one of the ECHO object schemas.",
+  "bundle_json_note": "If using bundle-json, validate against schemas/echo.bundle.v1.json"
+},
+
     "schema_index_ref": "schemas/echo.schema.index.json",
   "schema_files": {
     "AgentAnnouncement": "schemas/echo.schema.aao.v1.json",
