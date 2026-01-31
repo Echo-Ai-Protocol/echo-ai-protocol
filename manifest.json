@@ -1,5 +1,5 @@
 {
-  "manifest_version": "0.6.1",
+  "manifest_version": "0.7",
   "protocol_id": "ECHO",
   "protocol_version": "1.0",
 
@@ -13,6 +13,9 @@
     "trace_flow": "docs/TRACE_FLOW.md",
     "search_semantics": "docs/SEARCH_SEMANTICS.md",
     "validation_loop": "docs/VALIDATION_LOOP.md",
+
+    "simulation_plan": "docs/SIMULATION_PLAN.md"
+    "experiment_matrix": "docs/EXPERIMENT_MATRIX.md",
 
     "well_known": "docs/WELL_KNOWN.md",
     "protocol_identity": "docs/PROTOCOL_IDENTITY.md",
@@ -45,7 +48,8 @@
     "examples/request.bootstrap.json",
     "examples/eo.example.json",
     "examples/rr.example.json",
-    "examples/referral.example.json"
+    "examples/referral.example.json",
+    "examples/simulation/state.template.json"
   ],
 
   "discovery_refs": {
