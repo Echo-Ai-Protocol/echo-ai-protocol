@@ -81,7 +81,9 @@ class SimParams:
         max_contradiction_rate=0.15,
         min_stability_observed=0.65,
     )
-
+# NOTE:
+# Promotion thresholds below are for SIMULATION ONLY.
+# Protocol-level thresholds live in manifest.json.
 
 def read_params_from_manifest(manifest: Dict[str, Any]) -> SimParams:
     """
