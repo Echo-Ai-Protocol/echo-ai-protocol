@@ -1,0 +1,17 @@
+{
+  "agents_total": 20,
+  "objects": {
+    "eos_total": 806,
+    "eos_useful": 169,
+    "eos_bad": 637
+  },
+  "metrics": {
+    "D1_useful_top5": 100.0,
+    "D2_time_to_find_ticks": 0,
+    "T1_false_promotion_rate": 0.0,
+    "T2_missed_promotion_rate": 73.37,
+    "A1_spam_survival_rate": 27.5,
+    "P1_avg_trace_lifetime_ticks": 6,
+    "C1_bootstrap_success": true
+  }
+}
