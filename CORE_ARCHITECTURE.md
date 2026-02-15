@@ -73,3 +73,8 @@ Canonical Core layer:
 - service-level operability
 
 Together they form Infrastructure v1: interoperable by design, practical at scale.
+
+## Architecture Decisions
+
+- `docs/adr/ADR-0001-v1-1-core-stabilization.md` captures the V1.1 move to an
+  importable `reference_node` package with stable APIs and unit tests.

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# NOTE: This script is intentionally smoke-only.
+# Unit tests are executed separately via pytest.
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 NODE="$ROOT_DIR/reference-node/echo_node.py"
 SERVER="$ROOT_DIR/reference-node/server.py"

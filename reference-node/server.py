@@ -19,7 +19,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-import echo_node
+import reference_node as core
 
 
 @dataclass
@@ -47,9 +47,9 @@ def _is_number(value: Any) -> bool:
 
 def _collect_rr_stats(storage_root: Path) -> Dict[str, Dict[str, int]]:
     stats: Dict[str, Dict[str, int]] = {}
-    for path in echo_node.iter_stored_paths(storage_root, "rr"):
+    for path in core.iter_stored_paths(storage_root, "rr"):
         try:
-            obj = echo_node.load_json(path)
+            obj = core.load_json(path)
         except Exception:
             continue
         if not isinstance(obj, dict):
@@ -109,9 +109,9 @@ def _compute_reputation(storage_root: Path, agent_did: str) -> Dict[str, Any]:
     total = 0
     success = 0
 
-    for path in echo_node.iter_stored_paths(storage_root, "rr"):
+    for path in core.iter_stored_paths(storage_root, "rr"):
         try:
-            rr = echo_node.load_json(path)
+            rr = core.load_json(path)
         except Exception:
             continue
         if not isinstance(rr, dict):
@@ -133,7 +133,7 @@ def _compute_reputation(storage_root: Path, agent_did: str) -> Dict[str, Any]:
 
 def create_app(config: NodeConfig) -> FastAPI:
     # Validate manifest early so service fails fast on bad config.
-    echo_node.load_manifest(config.manifest_path)
+    core.load_manifest(config.manifest_path)
 
     app = FastAPI(title="ECHO Reference Node", version="0.9")
     app.state.config = config
@@ -152,12 +152,12 @@ def create_app(config: NodeConfig) -> FastAPI:
         object_type = payload.type
         obj = payload.object_json
 
-        if object_type not in echo_node.TYPE_TO_FAMILY:
+        if object_type not in core.TYPE_TO_FAMILY:
             raise HTTPException(status_code=400, detail=f"Unknown type: {object_type}")
         if not isinstance(obj, dict):
             raise HTTPException(status_code=400, detail="object_json must be a JSON object")
 
-        errors = echo_node.validate_object(
+        errors = core.validate_object(
             object_type=object_type,
             obj=obj,
             manifest_path=config.manifest_path,
@@ -168,12 +168,12 @@ def create_app(config: NodeConfig) -> FastAPI:
             raise HTTPException(status_code=422, detail={"errors": errors})
 
         try:
-            out = echo_node.store_object(
+            out = core.store_object(
                 storage_root=config.storage_root,
                 object_type=object_type,
                 obj=obj,
             )
-            obj_id = echo_node.object_id_for_type(object_type, obj)
+            obj_id = core.object_id_for_type(object_type, obj)
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Store failed: {exc}") from exc
 
@@ -193,13 +193,13 @@ def create_app(config: NodeConfig) -> FastAPI:
         rank: bool = Query(False),
         limit: int = Query(50, ge=0, le=1000),
     ) -> SearchOut:
-        if type not in echo_node.TYPE_TO_FAMILY:
+        if type not in core.TYPE_TO_FAMILY:
             raise HTTPException(status_code=400, detail=f"Unknown type: {type}")
         if op not in {"equals", "contains", "prefix"}:
             raise HTTPException(status_code=400, detail="Unsupported op. Use equals|contains|prefix")
 
         try:
-            results = echo_node.search_objects(
+            results = core.search_objects(
                 storage_root=config.storage_root,
                 object_type=type,
                 field=field,
@@ -227,9 +227,9 @@ def create_app(config: NodeConfig) -> FastAPI:
 
 def default_config() -> NodeConfig:
     return NodeConfig(
-        manifest_path=Path(echo_node._default_manifest_path()).expanduser().resolve(),
-        schemas_dir=Path(echo_node._default_schemas_dir()).expanduser().resolve(),
-        storage_root=echo_node._storage_root(),
+        manifest_path=Path(core.default_manifest_path()).expanduser().resolve(),
+        schemas_dir=Path(core.default_schemas_dir()).expanduser().resolve(),
+        storage_root=core.default_storage_root(),
     )
 
 
@@ -244,8 +244,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run ECHO reference-node HTTP server")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--manifest", default=str(echo_node._default_manifest_path()))
-    parser.add_argument("--schemas-dir", default=str(echo_node._default_schemas_dir()))
+    parser.add_argument("--manifest", default=str(core.default_manifest_path()))
+    parser.add_argument("--schemas-dir", default=str(core.default_schemas_dir()))
     return parser.parse_args()
 
 
@@ -254,7 +254,7 @@ def main() -> None:
     config = NodeConfig(
         manifest_path=Path(args.manifest).expanduser().resolve(),
         schemas_dir=Path(args.schemas_dir).expanduser().resolve(),
-        storage_root=echo_node._storage_root(),
+        storage_root=core.default_storage_root(),
     )
     app = create_app(config)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
