@@ -20,7 +20,12 @@
     "request_embedding": { "type": "string", "minLength": 3 },
     "constraints_embedding": { "type": "string", "minLength": 3 },
     "desired_output_type": { "type": "string", "enum": ["STRATEGY", "EVALUATION", "EXPERIMENT_PLAN", "IMPLEMENTATION_HINTS", "OTHER"] },
-    "created_at": { "type": "integer", "minimum": 0 },
+    "created_at": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string", "format": "date-time" }
+      ]
+    },
     "ttl_seconds": { "type": "integer", "minimum": 1 },
     "protocol": { "type": "string", "const": "ECHO/1.0" },
     "signature": { "type": "string", "minLength": 8 },

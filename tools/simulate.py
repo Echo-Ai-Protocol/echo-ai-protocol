@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 import random
+import subprocess
 import sys
+import tempfile
+import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 # -----------------------------
@@ -169,11 +173,121 @@ def parse_attack_profile(state: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def build_simulated_eo_payload(
+    eo_id: str,
+    quality: bool,
+    stability: float,
+    tick: int,
+) -> Dict[str, Any]:
+    """Build a schema-valid EO payload for reference-node CLI ingestion."""
+    return {
+        "eo_id": eo_id,
+        "problem_embedding": "SIM_PROBLEM_EMBEDDING",
+        "constraints_embedding": "SIM_CONSTRAINTS_EMBEDDING",
+        "solution_embedding": "SIM_SOLUTION_EMBEDDING",
+        "outcome_metrics": {
+            "effectiveness_score": 0.85 if quality else 0.25,
+            "stability_score": round(stability, 4),
+            "iterations": 1,
+        },
+        "confidence_score": 0.8 if quality else 0.35,
+        "share_level": "FEDERATED",
+        "created_at": tick,
+        "protocol": "ECHO/1.0",
+        "signature": f"sim-signature-{eo_id}",
+    }
+
+
+def store_eo_via_reference_node(
+    repo_root: str,
+    eo_payload: Dict[str, Any],
+    skip_signature: bool,
+) -> Tuple[bool, str]:
+    """Send one EO to reference-node CLI and return (accepted, raw_output)."""
+    node_path = os.path.join(repo_root, "reference-node", "echo_node.py")
+    manifest_path = os.path.join(repo_root, "manifest.json")
+    schemas_dir = os.path.join(repo_root, "schemas")
+
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", encoding="utf-8", delete=False
+        ) as tmp:
+            json.dump(eo_payload, tmp, ensure_ascii=False, indent=2)
+            tmp.write("\n")
+            tmp_path = tmp.name
+
+        cmd = [
+            sys.executable,
+            node_path,
+            "--manifest",
+            manifest_path,
+            "--schemas-dir",
+            schemas_dir,
+            "store",
+            "--type",
+            "eo",
+            "--file",
+            tmp_path,
+        ]
+        if skip_signature:
+            cmd.append("--skip-signature")
+
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        output = (proc.stdout + proc.stderr).strip()
+        return proc.returncode == 0, output
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+
+def search_eo_via_reference_node(repo_root: str, eo_id: str) -> Tuple[bool, int, str]:
+    """Probe reference-node search for a single EO id."""
+    node_path = os.path.join(repo_root, "reference-node", "echo_node.py")
+    manifest_path = os.path.join(repo_root, "manifest.json")
+    schemas_dir = os.path.join(repo_root, "schemas")
+    cmd = [
+        sys.executable,
+        node_path,
+        "--manifest",
+        manifest_path,
+        "--schemas-dir",
+        schemas_dir,
+        "search",
+        "--type",
+        "eo",
+        "--field",
+        "eo_id",
+        "--equals",
+        eo_id,
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    output = (proc.stdout + proc.stderr).strip()
+
+    count = 0
+    for line in proc.stdout.splitlines():
+        if line.startswith("count:"):
+            try:
+                count = int(line.split(":", 1)[1].strip())
+            except Exception:
+                count = 0
+            break
+
+    return proc.returncode == 0, count, output
+
+
 # -----------------------------
 # Simulation core
 # -----------------------------
 
-def simulate(state: Dict[str, Any], params: SimParams, seed: int = 42) -> Dict[str, Any]:
+def simulate(
+    state: Dict[str, Any],
+    params: SimParams,
+    seed: int = 42,
+    use_reference_node: bool = False,
+    repo_root: Optional[str] = None,
+    reference_node_skip_signature: bool = False,
+) -> Dict[str, Any]:
     random.seed(seed)
 
     duration_ticks = int(state.get("duration_ticks", 168))
@@ -194,36 +308,82 @@ def simulate(state: Dict[str, Any], params: SimParams, seed: int = 42) -> Dict[s
     first_find_tick = None
 
     th = params.promo
+    eo_seq = 0
+    run_tag = f"{seed}.{int(time.time())}"
+
+    node_stats: Dict[str, Any] = {
+        "enabled": bool(use_reference_node),
+        "store_calls": 0,
+        "store_ok": 0,
+        "store_fail": 0,
+        "first_error": None,
+        "search_probe_id": None,
+        "search_probe_found": None,
+    }
+    stored_ids: List[str] = []
 
     for tick in range(duration_ticks):
+        def add_eo(quality: bool, stability: float):
+            nonlocal eo_seq
+            eo_seq += 1
+            eo_id = f"echo.eo.sim.{run_tag}.{eo_seq}"
+
+            accepted = True
+            if use_reference_node:
+                if not repo_root:
+                    accepted = False
+                    node_stats["store_calls"] += 1
+                    node_stats["store_fail"] += 1
+                    if node_stats["first_error"] is None:
+                        node_stats["first_error"] = "missing repo_root for reference-node mode"
+                else:
+                    payload = build_simulated_eo_payload(eo_id, quality, stability, tick)
+                    node_stats["store_calls"] += 1
+                    ok, out = store_eo_via_reference_node(
+                        repo_root=repo_root,
+                        eo_payload=payload,
+                        skip_signature=reference_node_skip_signature,
+                    )
+                    if ok:
+                        node_stats["store_ok"] += 1
+                        stored_ids.append(eo_id)
+                    else:
+                        accepted = False
+                        node_stats["store_fail"] += 1
+                        if node_stats["first_error"] is None:
+                            node_stats["first_error"] = out[:500] if out else "reference-node store failed"
+
+            if accepted:
+                eos.append({
+                    "eo_id": eo_id,
+                    "quality": quality,
+                    "receipts": [],
+                    "stability": stability,
+                    "promoted": False
+                })
+
         # ---- Publish EOs ----
         honest_expected = params.honest_publish_rate * n_honest
         for _ in range(spawn_count(honest_expected)):
-            eos.append({
-                "quality": (random.random() < params.p_useful_honest),
-                "receipts": [],
-                "stability": random.uniform(params.honest_stability_min, params.honest_stability_max),
-                "promoted": False
-            })
+            add_eo(
+                quality=(random.random() < params.p_useful_honest),
+                stability=random.uniform(params.honest_stability_min, params.honest_stability_max),
+            )
 
         noisy_expected = params.noisy_publish_rate * n_noisy
         for _ in range(spawn_count(noisy_expected)):
-            eos.append({
-                "quality": (random.random() < params.p_useful_noisy),
-                "receipts": [],
-                "stability": random.uniform(params.noisy_stability_min, params.noisy_stability_max),
-                "promoted": False
-            })
+            add_eo(
+                quality=(random.random() < params.p_useful_noisy),
+                stability=random.uniform(params.noisy_stability_min, params.noisy_stability_max),
+            )
 
         # adversarial poisoning EOs
         adv_attempts = int(max(0.0, eo_poisoning_rate) * n_adv)
         for _ in range(adv_attempts):
-            eos.append({
-                "quality": (random.random() < params.p_useful_adv),
-                "receipts": [],
-                "stability": random.uniform(params.adv_stability_min, params.adv_stability_max),
-                "promoted": False
-            })
+            add_eo(
+                quality=(random.random() < params.p_useful_adv),
+                stability=random.uniform(params.adv_stability_min, params.adv_stability_max),
+            )
 
         # ---- Trace flood (TTL) ----
         new_traces = int(max(0.0, trace_flood_rate) * n_adv)
@@ -347,6 +507,17 @@ def simulate(state: Dict[str, Any], params: SimParams, seed: int = 42) -> Dict[s
             "C1_bootstrap_success": True
         }
     }
+
+    if use_reference_node:
+        if repo_root and stored_ids:
+            probe_id = stored_ids[0]
+            ok, count, out = search_eo_via_reference_node(repo_root=repo_root, eo_id=probe_id)
+            node_stats["search_probe_id"] = probe_id
+            node_stats["search_probe_found"] = bool(ok and count > 0)
+            if (not ok or count <= 0) and node_stats["first_error"] is None:
+                node_stats["first_error"] = out[:500] if out else "reference-node search probe failed"
+        report["reference_node"] = node_stats
+
     return report
 
 
@@ -354,14 +525,36 @@ def simulate(state: Dict[str, Any], params: SimParams, seed: int = 42) -> Dict[s
 # CLI
 # -----------------------------
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="ECHO minimal simulator")
+    parser.add_argument(
+        "state",
+        nargs="?",
+        default=os.path.join("examples", "simulation", "state.template.json"),
+        help="Path to simulation state JSON (repo-relative or absolute)",
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument(
+        "--use-reference-node",
+        action="store_true",
+        help="Store generated EOs through reference-node CLI",
+    )
+    parser.add_argument(
+        "--reference-node-skip-signature",
+        action="store_true",
+        help="When using reference-node mode, pass --skip-signature to store calls",
+    )
+    return parser.parse_args()
+
+
 def main():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    args = parse_args()
 
-    if len(sys.argv) > 1:
-        state_rel = sys.argv[1]
-        state_path = os.path.join(repo_root, state_rel)
+    if os.path.isabs(args.state):
+        state_path = args.state
     else:
-        state_path = os.path.join(repo_root, "examples", "simulation", "state.template.json")
+        state_path = os.path.join(repo_root, args.state)
 
     manifest_path = os.path.join(repo_root, "manifest.json")
 
@@ -371,7 +564,14 @@ def main():
     manifest = load_json(manifest_path)
     params = read_params_from_manifest(manifest)
 
-    report = simulate(state, params, seed=42)
+    report = simulate(
+        state,
+        params,
+        seed=args.seed,
+        use_reference_node=args.use_reference_node,
+        repo_root=repo_root,
+        reference_node_skip_signature=args.reference_node_skip_signature,
+    )
 
     print("\nECHO Minimal Simulator Report\n")
     print("Agents total:", report["agents_total"])
@@ -386,6 +586,18 @@ def main():
     print("\nMetrics:")
     for k, v in report["metrics"].items():
         print(f"  - {k}: {v}")
+
+    if "reference_node" in report:
+        rn = report["reference_node"]
+        print("\nReference-node:")
+        print(f"  - enabled: {rn.get('enabled')}")
+        print(f"  - store_calls: {rn.get('store_calls')}")
+        print(f"  - store_ok: {rn.get('store_ok')}")
+        print(f"  - store_fail: {rn.get('store_fail')}")
+        print(f"  - search_probe_id: {rn.get('search_probe_id')}")
+        print(f"  - search_probe_found: {rn.get('search_probe_found')}")
+        if rn.get("first_error"):
+            print(f"  - first_error: {rn.get('first_error')}")
 
     out_dir = os.path.join(repo_root, "tools", "out")
     os.makedirs(out_dir, exist_ok=True)

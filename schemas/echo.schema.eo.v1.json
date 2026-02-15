@@ -17,22 +17,46 @@
   ],
   "properties": {
     "eo_id": { "type": "string", "minLength": 3 },
-    "problem_embedding": { "type": "string", "minLength": 3 },
-    "constraints_embedding": { "type": "string", "minLength": 3 },
-    "solution_embedding": { "type": "string", "minLength": 3 },
+    "problem_embedding": {
+      "oneOf": [
+        { "type": "string", "minLength": 3 },
+        { "type": "array", "minItems": 1, "items": { "type": "number" } }
+      ]
+    },
+    "constraints_embedding": {
+      "oneOf": [
+        { "type": "string", "minLength": 3 },
+        { "type": "array", "minItems": 1, "items": { "type": "number" } }
+      ]
+    },
+    "solution_embedding": {
+      "oneOf": [
+        { "type": "string", "minLength": 3 },
+        { "type": "array", "minItems": 1, "items": { "type": "number" } }
+      ]
+    },
     "outcome_metrics": {
       "type": "object",
-      "required": ["effectiveness_score", "stability_score", "iterations"],
       "properties": {
         "effectiveness_score": { "type": "number", "minimum": 0 },
         "stability_score": { "type": "number", "minimum": 0 },
-        "iterations": { "type": "integer", "minimum": 0 }
+        "iterations": { "type": "integer", "minimum": 0 },
+        "success_rate": { "type": "number", "minimum": 0, "maximum": 1 }
       },
+      "anyOf": [
+        { "required": ["effectiveness_score", "stability_score", "iterations"] },
+        { "required": ["success_rate"] }
+      ],
       "additionalProperties": false
     },
     "confidence_score": { "type": "number", "minimum": 0 },
     "share_level": { "type": "string", "enum": ["PRIVATE", "FEDERATED", "GLOBAL_ABSTRACT"] },
-    "created_at": { "type": "integer", "minimum": 0 },
+    "created_at": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string", "format": "date-time" }
+      ]
+    },
     "protocol": { "type": "string", "const": "ECHO/1.0" },
     "signature": { "type": "string", "minLength": 8 },
     "pow_nonce": { "type": "string" }

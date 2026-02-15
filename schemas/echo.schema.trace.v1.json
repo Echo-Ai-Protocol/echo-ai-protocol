@@ -24,7 +24,12 @@
       "items": { "type": "string" },
       "minItems": 0
     },
-    "created_at": { "type": "integer", "minimum": 0 },
+    "created_at": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string", "format": "date-time" }
+      ]
+    },
     "ttl_seconds": { "type": "integer", "minimum": 1 },
     "protocol": { "type": "string", "const": "ECHO/1.0" },
     "signature": { "type": "string", "minLength": 8 },
