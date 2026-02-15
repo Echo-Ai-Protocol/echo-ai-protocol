@@ -159,7 +159,11 @@ python3 reference-node/server.py \
 
 - `GET /health`
 - `POST /objects`
+- `GET /objects/{type}/{object_id}`
 - `GET /search`
+- `GET /bundles/export`
+- `POST /bundles/import`
+- `GET /stats`
 - `GET /reputation/{agent_did}`
 
 ### curl Examples
@@ -198,6 +202,27 @@ Search with ranking:
 curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true'
 ```
 
+Get object by ID:
+
+```bash
+curl -s 'http://127.0.0.1:8080/objects/eo/echo.eo.http.v1'
+```
+
+Bundle export/import:
+
+```bash
+curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
+curl -s -X POST http://127.0.0.1:8080/bundles/import \
+  -H 'Content-Type: application/json' \
+  -d '{"bundle":{"manifest_version":"echo.manifest.v1","protocol_version":"ECHO/1.0","objects":[]},"skip_signature":true}'
+```
+
+Node stats:
+
+```bash
+curl -s 'http://127.0.0.1:8080/stats'
+```
+
 Reputation stub:
 
 ```bash
@@ -222,7 +247,8 @@ This is a v0 stub to prepare for semantic ranking and reputation integration.
 Script checks:
 - CLI validate/store/search/index/export/import
 - HTTP startup + `/health`
-- HTTP `POST /objects` and `GET /search?rank=true`
+- HTTP `POST /objects`, `GET /objects/{type}/{id}`, `GET /search?rank=true`
+- HTTP `GET /bundles/export`, `POST /bundles/import`, `GET /stats`
 
 If HTTP deps are not installed, HTTP section is skipped by default.
 To require HTTP section and fail when unavailable:

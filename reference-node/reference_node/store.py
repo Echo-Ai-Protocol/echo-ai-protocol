@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable
 
 from .index import load_index, save_index
-from .io_utils import safe_filename, write_json
+from .io_utils import load_json, safe_filename, write_json
 from .types import ID_FIELD_MAP, TYPE_DIR
 
 
@@ -42,3 +42,13 @@ def store_object(storage_root: Path, object_type: str, obj: Dict[str, Any]) -> P
         save_index(storage_root, index)
 
     return out
+
+
+def get_object(storage_root: Path, object_type: str, obj_id: str) -> Dict[str, Any]:
+    path = storage_path_for_id(storage_root, object_type, obj_id)
+    if not path.exists():
+        raise FileNotFoundError(f"Object not found: {object_type}:{obj_id}")
+    obj = load_json(path)
+    if not isinstance(obj, dict):
+        raise ValueError(f"Stored object must be JSON object: {path}")
+    return obj
