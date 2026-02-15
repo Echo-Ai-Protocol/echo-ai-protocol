@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+reference-node/storage/**
+!reference-node/storage/.gitkeep
+tools/out/**
+!tools/out/.gitkeep
