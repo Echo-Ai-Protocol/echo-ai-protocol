@@ -25,11 +25,10 @@ def infer_object_type(obj: Dict[str, Any]) -> str:
     raise ValueError(f"Unable to infer object type: multiple id fields present ({', '.join(matches)})")
 
 
-def export_bundle(
+def export_bundle_payload(
     storage_root: Path,
     manifest_path: Path,
     object_type: str,
-    out_path: Path,
 ) -> Dict[str, Any]:
     manifest = load_manifest(manifest_path)
 
@@ -46,18 +45,31 @@ def export_bundle(
         "objects": objects,
     }
 
+    return bundle
+
+
+def export_bundle(
+    storage_root: Path,
+    manifest_path: Path,
+    object_type: str,
+    out_path: Path,
+) -> Dict[str, Any]:
+    bundle = export_bundle_payload(
+        storage_root=storage_root,
+        manifest_path=manifest_path,
+        object_type=object_type,
+    )
     write_json(out_path, bundle)
     return bundle
 
 
-def import_bundle(
+def import_bundle_payload(
     storage_root: Path,
     manifest_path: Path,
     schemas_dir: Path,
-    bundle_path: Path,
+    bundle: Dict[str, Any],
     skip_signature: bool,
 ) -> int:
-    bundle = load_json(bundle_path)
     if not isinstance(bundle, dict):
         raise ValueError("Bundle must be a JSON object")
 
@@ -116,3 +128,20 @@ def import_bundle(
         store_object(storage_root=storage_root, object_type=object_type, obj=item)
 
     return len(staged)
+
+
+def import_bundle(
+    storage_root: Path,
+    manifest_path: Path,
+    schemas_dir: Path,
+    bundle_path: Path,
+    skip_signature: bool,
+) -> int:
+    bundle = load_json(bundle_path)
+    return import_bundle_payload(
+        storage_root=storage_root,
+        manifest_path=manifest_path,
+        schemas_dir=schemas_dir,
+        bundle=bundle,
+        skip_signature=skip_signature,
+    )

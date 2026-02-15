@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""ECHO Reference Node HTTP service (v0.9).
+"""ECHO Reference Node HTTP service (v1.2 launch API step).
 
 Endpoints:
 - POST /objects
+- GET /objects/{type}/{object_id}
 - GET /search
+- GET /bundles/export
+- POST /bundles/import
+- GET /stats
 - GET /health
 - GET /reputation/{agent_did}
 """
@@ -32,6 +36,11 @@ class NodeConfig:
 class ObjectIn(BaseModel):
     type: str
     object_json: Dict[str, Any] = Field(default_factory=dict)
+    skip_signature: bool = False
+
+
+class BundleImportIn(BaseModel):
+    bundle: Dict[str, Any] = Field(default_factory=dict)
     skip_signature: bool = False
 
 
@@ -184,6 +193,23 @@ def create_app(config: NodeConfig) -> FastAPI:
             "path": str(out),
         }
 
+    @app.get("/objects/{type}/{object_id}")
+    def get_object(type: str, object_id: str) -> Dict[str, Any]:
+        if type not in core.TYPE_TO_FAMILY:
+            raise HTTPException(status_code=400, detail=f"Unknown type: {type}")
+        try:
+            obj = core.get_object(config.storage_root, type, object_id)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=f"Object not found: {type}:{object_id}")
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Read failed: {exc}") from exc
+
+        return {
+            "type": type,
+            "id": object_id,
+            "object": obj,
+        }
+
     @app.get("/search", response_model=SearchOut)
     def get_search(
         type: str,
@@ -216,6 +242,50 @@ def create_app(config: NodeConfig) -> FastAPI:
 
         trimmed = results[:limit]
         return SearchOut(count=len(results), ranked=ranked, results=trimmed)
+
+    @app.get("/bundles/export")
+    def get_bundle_export(type: str) -> Dict[str, Any]:
+        if type not in core.TYPE_TO_FAMILY:
+            raise HTTPException(status_code=400, detail=f"Unknown type: {type}")
+
+        try:
+            return core.export_bundle_payload(
+                storage_root=config.storage_root,
+                manifest_path=config.manifest_path,
+                object_type=type,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Bundle export failed: {exc}") from exc
+
+    @app.post("/bundles/import")
+    def post_bundle_import(payload: BundleImportIn) -> Dict[str, Any]:
+        if not isinstance(payload.bundle, dict):
+            raise HTTPException(status_code=400, detail="bundle must be a JSON object")
+
+        try:
+            count = core.import_bundle_payload(
+                storage_root=config.storage_root,
+                manifest_path=config.manifest_path,
+                schemas_dir=config.schemas_dir,
+                bundle=payload.bundle,
+                skip_signature=payload.skip_signature,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Bundle import failed: {exc}") from exc
+
+        return {
+            "status": "imported",
+            "stored_objects": count,
+        }
+
+    @app.get("/stats")
+    def get_stats() -> Dict[str, Any]:
+        stats = core.compute_stats(config.storage_root)
+        stats["manifest"] = str(config.manifest_path)
+        stats["schemas_dir"] = str(config.schemas_dir)
+        return stats
 
     @app.get("/reputation/{agent_did}")
     def get_reputation(agent_did: str) -> Dict[str, Any]:

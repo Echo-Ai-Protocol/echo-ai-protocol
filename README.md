@@ -15,6 +15,7 @@ Hybrid v1 combines:
 - `docs/REFERENCE_NODE_API.md` — minimal API surface
 - `docs/SIMULATION_PLAN.md` — simulation model and metrics
 - `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
+- `docs/adr/ADR-0002-v1-2-launch-api-observability.md` — V1.2 launch API decision
 
 ## Quickstart (CLI)
 
@@ -22,6 +23,12 @@ Hybrid v1 combines:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r reference-node/requirements.txt
+```
+
+Preflight check:
+
+```bash
+make preflight
 ```
 
 Validate/store/search with samples:
@@ -62,6 +69,12 @@ curl -s -X POST http://127.0.0.1:8080/objects \
 curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true'
 ```
 
+```bash
+curl -s 'http://127.0.0.1:8080/objects/eo/echo.eo.http.v1'
+curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
+curl -s 'http://127.0.0.1:8080/stats'
+```
+
 ### Ranking v0 (`rank=true`)
 
 For `type=eo`, trust-weighted ranking uses:
@@ -98,6 +111,7 @@ python3 tools/simulate.py --use-reference-node --reference-node-skip-signature
 
 ```bash
 ./reference-node/run_smoke_tests.sh
+make smoke
 ```
 
 Behavior:
@@ -107,4 +121,14 @@ Behavior:
 
 ```bash
 SMOKE_REQUIRE_HTTP=1 ./reference-node/run_smoke_tests.sh
+```
+
+## Operator Runbook
+
+```bash
+make preflight
+make smoke
+make simulate
+make server
+make test
 ```

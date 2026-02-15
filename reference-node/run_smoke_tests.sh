@@ -22,6 +22,10 @@ BUNDLE_FILE=""
 HTTP_PAYLOAD=""
 HTTP_POST_OUT="/tmp/echo-http-post.out"
 HTTP_SEARCH_OUT="/tmp/echo-http-search.out"
+HTTP_OBJ_OUT="/tmp/echo-http-object.out"
+HTTP_STATS_OUT="/tmp/echo-http-stats.out"
+HTTP_BUNDLE_OUT="/tmp/echo-http-bundle.out"
+HTTP_BUNDLE_IMPORT_PAYLOAD=""
 
 TYPES=(eo trace request rr aao referral seedupdate)
 
@@ -41,7 +45,10 @@ cleanup() {
   if [[ -n "${HTTP_PAYLOAD:-}" ]]; then
     rm -f "$HTTP_PAYLOAD" || true
   fi
-  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" || true
+  if [[ -n "${HTTP_BUNDLE_IMPORT_PAYLOAD:-}" ]]; then
+    rm -f "$HTTP_BUNDLE_IMPORT_PAYLOAD" || true
+  fi
+  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" || true
 }
 trap cleanup EXIT
 
@@ -292,6 +299,29 @@ PY
   fi
   print_pass "HTTP POST /objects"
 
+  echo "[SMOKE] HTTP GET /objects/{type}/{id}"
+  http_code="$(curl -sS -o "$HTTP_OBJ_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/objects/eo/echo.eo.http.smoke.v1")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_OBJ_OUT"
+    print_fail "HTTP GET /objects/{type}/{id} failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_OBJ_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+if payload.get("id") != "echo.eo.http.smoke.v1":
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_OBJ_OUT"
+    print_fail "HTTP GET /objects returned unexpected payload"
+    return 1
+  fi
+  print_pass "HTTP GET /objects/{type}/{id}"
+
   echo "[SMOKE] HTTP GET /search rank=true"
   http_code="$(curl -sS -o "$HTTP_SEARCH_OUT" -w '%{http_code}' \
     "http://$SERVER_HOST:$SERVER_PORT/search?type=eo&field=eo_id&op=contains&value=echo.eo.http&rank=true")"
@@ -315,6 +345,78 @@ PY
     return 1
   fi
   print_pass "HTTP GET /search rank=true"
+
+  echo "[SMOKE] HTTP GET /bundles/export"
+  http_code="$(curl -sS -o "$HTTP_BUNDLE_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/bundles/export?type=eo")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_BUNDLE_OUT"
+    print_fail "HTTP GET /bundles/export failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_BUNDLE_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+objs = payload.get("objects")
+if not isinstance(objs, list) or len(objs) < 1:
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_BUNDLE_OUT"
+    print_fail "HTTP GET /bundles/export returned invalid bundle"
+    return 1
+  fi
+  print_pass "HTTP GET /bundles/export"
+
+  HTTP_BUNDLE_IMPORT_PAYLOAD="$(mktemp /tmp/echo-http-bundle-import.XXXXXX.json)"
+  python3 - "$HTTP_BUNDLE_OUT" "$HTTP_BUNDLE_IMPORT_PAYLOAD" <<'PY'
+import json
+import sys
+bundle_path, out_path = sys.argv[1], sys.argv[2]
+with open(bundle_path, "r", encoding="utf-8") as f:
+    bundle = json.load(f)
+payload = {"bundle": bundle, "skip_signature": False}
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False)
+PY
+
+  echo "[SMOKE] HTTP POST /bundles/import"
+  http_code="$(curl -sS -o "$HTTP_POST_OUT" -w '%{http_code}' \
+    -X POST "http://$SERVER_HOST:$SERVER_PORT/bundles/import" \
+    -H 'Content-Type: application/json' \
+    --data-binary "@$HTTP_BUNDLE_IMPORT_PAYLOAD")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_POST_OUT"
+    print_fail "HTTP POST /bundles/import failed with status $http_code"
+    return 1
+  fi
+  print_pass "HTTP POST /bundles/import"
+
+  echo "[SMOKE] HTTP GET /stats"
+  http_code="$(curl -sS -o "$HTTP_STATS_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/stats")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_STATS_OUT"
+    print_fail "HTTP GET /stats failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_STATS_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+counts = payload.get("objects", {}).get("counts", {})
+if int(counts.get("eo", 0)) < 1:
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_STATS_OUT"
+    print_fail "HTTP GET /stats returned unexpected counts"
+    return 1
+  fi
+  print_pass "HTTP GET /stats"
 
   cleanup
   return 0
