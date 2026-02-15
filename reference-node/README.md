@@ -114,6 +114,12 @@ Server file:
 Run:
 
 ```bash
+python3 -m uvicorn server:app --app-dir reference-node --host 127.0.0.1 --port 8080
+```
+
+or with explicit manifest/schemas arguments:
+
+```bash
 python3 reference-node/server.py \
   --host 127.0.0.1 \
   --port 8080 \

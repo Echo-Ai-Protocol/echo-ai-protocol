@@ -96,6 +96,7 @@ run_cli_smoke() {
   echo "[SMOKE] Clearing storage..."
   rm -rf "$STORAGE_DIR"
   mkdir -p "$STORAGE_DIR"
+  touch "$STORAGE_DIR/.gitkeep"
   print_pass "storage cleared"
 
   for t in "${TYPES[@]}"; do
@@ -189,6 +190,7 @@ run_cli_smoke() {
   echo "[SMOKE] reset storage before import"
   rm -rf "$STORAGE_DIR"
   mkdir -p "$STORAGE_DIR"
+  touch "$STORAGE_DIR/.gitkeep"
   print_pass "storage reset"
 
   echo "[SMOKE] import bundle"

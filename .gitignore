@@ -2,7 +2,13 @@
 __pycache__/
 *.pyc
 .venv/
-reference-node/storage/**
+reference-node/storage/
+!reference-node/storage/
+reference-node/storage/*
 !reference-node/storage/.gitkeep
-tools/out/**
+tools/out/
+!tools/out/
+tools/out/*
 !tools/out/.gitkeep
+tools/__pycache__/
+reference-node/__pycache__/

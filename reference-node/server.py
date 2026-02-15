@@ -225,6 +225,21 @@ def create_app(config: NodeConfig) -> FastAPI:
     return app
 
 
+def default_config() -> NodeConfig:
+    return NodeConfig(
+        manifest_path=Path(echo_node._default_manifest_path()).expanduser().resolve(),
+        schemas_dir=Path(echo_node._default_schemas_dir()).expanduser().resolve(),
+        storage_root=echo_node._storage_root(),
+    )
+
+
+def create_default_app() -> FastAPI:
+    return create_app(default_config())
+
+
+app = create_default_app()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run ECHO reference-node HTTP server")
     parser.add_argument("--host", default="127.0.0.1")
