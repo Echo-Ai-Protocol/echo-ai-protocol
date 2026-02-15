@@ -1,0 +1,16 @@
+{
+  "rr_id": "echo.rr.sample.v1",
+  "issuer_agent_did": "did:echo:agent.sample.2",
+  "target_eo_id": "echo.eo.sample.v1",
+  "context_embedding": "VEC_CONTEXT_001",
+  "applied_constraints_embedding": "VEC_APPLIED_001",
+  "outcome_metrics": {
+    "effectiveness_score": 0.79,
+    "stability_score": 0.71,
+    "iterations": 1
+  },
+  "verdict": "SUCCESS",
+  "created_at": "2026-02-14T00:12:00Z",
+  "protocol": "ECHO/1.0",
+  "signature": "TEST_SIGNATURE"
+}

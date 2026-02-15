@@ -1,0 +1,8 @@
+{
+  "aao_id": "echo.aao.sample.v1",
+  "agent_did": "did:echo:agent.sample.1",
+  "protocol": "ECHO/1.0",
+  "capabilities": ["PUBLISH_EO", "ISSUE_RR"],
+  "created_at": "2026-02-14T00:01:00Z",
+  "signature": "TEST_SIGNATURE"
+}

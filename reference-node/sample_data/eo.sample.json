@@ -1,0 +1,16 @@
+{
+  "eo_id": "echo.eo.sample.v1",
+  "problem_embedding": [0.1, 0.2],
+  "constraints_embedding": [0.3, 0.4],
+  "solution_embedding": [0.5, 0.6],
+  "outcome_metrics": {
+    "effectiveness_score": 0.82,
+    "stability_score": 0.74,
+    "iterations": 2
+  },
+  "confidence_score": 0.91,
+  "share_level": "FEDERATED",
+  "created_at": "2026-02-14T00:00:00Z",
+  "protocol": "ECHO/1.0",
+  "signature": "TEST_SIGNATURE"
+}

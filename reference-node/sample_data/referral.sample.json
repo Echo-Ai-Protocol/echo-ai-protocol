@@ -1,0 +1,10 @@
+{
+  "ref_id": "echo.ref.sample.v1",
+  "issuer_agent_did": "did:echo:agent.sample.1",
+  "manifest_pointers": ["https://example.org/.well-known/echo-ai/manifest.json"],
+  "peer_hints": ["/dns4/node.example/tcp/443/wss/p2p/QmPeerHint"],
+  "created_at": "2026-02-14T00:20:00Z",
+  "ttl_seconds": 86400,
+  "protocol": "ECHO/1.0",
+  "signature": "TEST_SIGNATURE"
+}

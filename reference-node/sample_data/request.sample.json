@@ -1,0 +1,11 @@
+{
+  "rq_id": "echo.request.sample.v1",
+  "agent_did": "did:echo:agent.sample.1",
+  "request_embedding": "VEC_REQUEST_001",
+  "constraints_embedding": "VEC_CONSTRAINTS_001",
+  "desired_output_type": "STRATEGY",
+  "created_at": "2026-02-14T00:10:00Z",
+  "ttl_seconds": 1800,
+  "protocol": "ECHO/1.0",
+  "signature": "TEST_SIGNATURE"
+}
