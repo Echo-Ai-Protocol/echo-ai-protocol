@@ -14,6 +14,7 @@ Hybrid v1 combines:
 - `docs/REFERENCE_NODE.md` — reference-node goals
 - `docs/REFERENCE_NODE_API.md` — minimal API surface
 - `docs/SIMULATION_PLAN.md` — simulation model and metrics
+- `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
 
 ## Quickstart (CLI)
 
@@ -89,6 +90,7 @@ python3 tools/simulate.py --use-reference-node --reference-node-skip-signature
 - `schemas/` — JSON schemas
 - `examples/` — sample protocol objects + simulation states
 - `reference-node/` — CLI + HTTP local node
+  - `reference-node/reference_node/` — importable core library (v1.1)
 - `tools/` — simulation scripts/utilities
 - `core/` — Canonical Core service docs (registry/index/reputation/routing)
 

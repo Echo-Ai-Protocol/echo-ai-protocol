@@ -14,7 +14,29 @@ Reference-node is a local protocol node with modular layers:
 - Bundle engine: export/import for object portability
 - HTTP adapter: FastAPI endpoints over the same library functions
 
-The CLI and HTTP server share the same core logic in `echo_node.py`.
+The CLI and HTTP server share the same importable package logic in
+`reference-node/reference_node/`.
+
+## Package Layout
+
+Core package:
+- `reference-node/reference_node/types.py`
+- `reference-node/reference_node/validate.py`
+- `reference-node/reference_node/store.py`
+- `reference-node/reference_node/search.py`
+- `reference-node/reference_node/io_bundle.py`
+- `reference-node/reference_node/index.py`
+
+Adapters:
+- `reference-node/echo_node.py` (thin CLI wrapper)
+- `reference-node/server.py` (HTTP wrapper)
+
+Public Python APIs:
+- `validate_object`
+- `store_object`
+- `search_objects`
+- `export_bundle`
+- `import_bundle`
 
 ## Schema Resolution via Manifest
 
@@ -56,6 +78,12 @@ python3 -m pip install -r reference-node/requirements.txt
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r reference-node/requirements.txt
+```
+
+### Dev/Test dependencies
+
+```bash
+pip install -r reference-node/requirements-dev.txt
 ```
 
 ## CLI Examples
@@ -201,6 +229,12 @@ To require HTTP section and fail when unavailable:
 
 ```bash
 SMOKE_REQUIRE_HTTP=1 ./reference-node/run_smoke_tests.sh
+```
+
+## Unit Tests
+
+```bash
+pytest reference-node/tests
 ```
 
 ## Simulation Through Reference Node
