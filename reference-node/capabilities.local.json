@@ -1,0 +1,19 @@
+{
+  "node_id": "echo.reference.local",
+  "mode": "local-only",
+  "protocol": "ECHO/1.0",
+  "manifest_version": "echo.manifest.v1",
+  "features": {
+    "cli": true,
+    "http": true,
+    "manifest_routing": true,
+    "search_ops": ["equals", "contains", "prefix"],
+    "bundle_import_export": true,
+    "trust_weighted_ranking_v0": true,
+    "signature_policy_toggle": true
+  },
+  "limits": {
+    "max_search_limit": 1000,
+    "storage_backend": "local-filesystem"
+  }
+}

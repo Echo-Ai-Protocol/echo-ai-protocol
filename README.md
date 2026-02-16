@@ -14,6 +14,12 @@ Hybrid v1 combines:
 - `docs/REFERENCE_NODE.md` — reference-node goals
 - `docs/REFERENCE_NODE_API.md` — minimal API surface
 - `docs/SIMULATION_PLAN.md` — simulation model and metrics
+- `docs/FIRST_AI_TRACTION.md` — immediate adoption plan for first external agents
+- `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
+- `docs/adr/ADR-0002-v1-2-launch-api-observability.md` — V1.2 launch API decision
+- `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 policy hardening decision
+- `docs/adr/ADR-0004-v1-4-simulator-metrics-contract.md` — V1.4 simulator metrics contract
+- `docs/adr/ADR-0005-v1-5-explainable-search-and-metrics-history.md` — V1.5 explainable ranking + trend stats
 
 ## Quickstart (CLI)
 
@@ -21,6 +27,12 @@ Hybrid v1 combines:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r reference-node/requirements.txt
+```
+
+Preflight check:
+
+```bash
+make preflight
 ```
 
 Validate/store/search with samples:
@@ -58,7 +70,14 @@ curl -s -X POST http://127.0.0.1:8080/objects \
 ```
 
 ```bash
-curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true'
+curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true'
+```
+
+```bash
+curl -s 'http://127.0.0.1:8080/objects/eo/echo.eo.http.v1'
+curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
+curl -s 'http://127.0.0.1:8080/stats?history=10'
+curl -s 'http://127.0.0.1:8080/registry/capabilities'
 ```
 
 ### Ranking v0 (`rank=true`)
@@ -67,6 +86,7 @@ For `type=eo`, trust-weighted ranking uses:
 - `confidence_score`
 - presence of `outcome_metrics`
 - `SUCCESS` receipt evidence from stored `rr` objects
+- optional `explain=true` returns score components per result
 
 ## Simulation
 
@@ -83,12 +103,26 @@ python3 tools/simulate.py --use-reference-node
 python3 tools/simulate.py --use-reference-node --reference-node-skip-signature
 ```
 
+Latest report:
+
+```bash
+cat tools/out/sim_report_latest.json
+```
+
+Metrics contract (`echo.sim.metrics.v1`) emitted by simulator:
+- `time_to_find_ticks`
+- `useful_hit_rate_top5_pct`
+- `false_promotion_rate_pct`
+- `missed_promotion_rate_pct`
+- `spam_survival_rate_pct`
+
 ## Repo Layout
 
 - `docs/` — protocol/design docs
 - `schemas/` — JSON schemas
 - `examples/` — sample protocol objects + simulation states
 - `reference-node/` — CLI + HTTP local node
+  - `reference-node/reference_node/` — importable core library (v1.1)
 - `tools/` — simulation scripts/utilities
 - `core/` — Canonical Core service docs (registry/index/reputation/routing)
 
@@ -96,6 +130,7 @@ python3 tools/simulate.py --use-reference-node --reference-node-skip-signature
 
 ```bash
 ./reference-node/run_smoke_tests.sh
+make smoke
 ```
 
 Behavior:
@@ -105,4 +140,16 @@ Behavior:
 
 ```bash
 SMOKE_REQUIRE_HTTP=1 ./reference-node/run_smoke_tests.sh
+```
+
+## Operator Runbook
+
+```bash
+make preflight
+make smoke
+make simulate
+make server
+make server-strict
+make test
+make release-check
 ```

@@ -14,7 +14,29 @@ Reference-node is a local protocol node with modular layers:
 - Bundle engine: export/import for object portability
 - HTTP adapter: FastAPI endpoints over the same library functions
 
-The CLI and HTTP server share the same core logic in `echo_node.py`.
+The CLI and HTTP server share the same importable package logic in
+`reference-node/reference_node/`.
+
+## Package Layout
+
+Core package:
+- `reference-node/reference_node/types.py`
+- `reference-node/reference_node/validate.py`
+- `reference-node/reference_node/store.py`
+- `reference-node/reference_node/search.py`
+- `reference-node/reference_node/io_bundle.py`
+- `reference-node/reference_node/index.py`
+
+Adapters:
+- `reference-node/echo_node.py` (thin CLI wrapper)
+- `reference-node/server.py` (HTTP wrapper)
+
+Public Python APIs:
+- `validate_object`
+- `store_object`
+- `search_objects`
+- `export_bundle`
+- `import_bundle`
 
 ## Schema Resolution via Manifest
 
@@ -44,6 +66,10 @@ Index file:
 - `reference-node/storage/index.json`
 - tracks IDs by type, deduplicated
 
+Capabilities descriptor:
+- `reference-node/capabilities.local.json`
+- exposed via `GET /registry/capabilities`
+
 ## Install
 
 ```bash
@@ -56,6 +82,12 @@ python3 -m pip install -r reference-node/requirements.txt
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r reference-node/requirements.txt
+```
+
+### Dev/Test dependencies
+
+```bash
+pip install -r reference-node/requirements-dev.txt
 ```
 
 ## CLI Examples
@@ -127,11 +159,25 @@ python3 reference-node/server.py \
   --schemas-dir schemas
 ```
 
+Strict signature policy mode:
+
+```bash
+python3 reference-node/server.py \
+  --host 127.0.0.1 \
+  --port 8080 \
+  --require-signature
+```
+
 ### Endpoints
 
 - `GET /health`
 - `POST /objects`
+- `GET /objects/{type}/{object_id}`
 - `GET /search`
+- `GET /bundles/export`
+- `POST /bundles/import`
+- `GET /stats`
+- `GET /registry/capabilities`
 - `GET /reputation/{agent_did}`
 
 ### curl Examples
@@ -167,8 +213,59 @@ curl -s -X POST http://127.0.0.1:8080/objects \
 Search with ranking:
 
 ```bash
-curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true'
+curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true'
 ```
+
+Get object by ID:
+
+```bash
+curl -s 'http://127.0.0.1:8080/objects/eo/echo.eo.http.v1'
+```
+
+Bundle export/import:
+
+```bash
+curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
+curl -s -X POST http://127.0.0.1:8080/bundles/import \
+  -H 'Content-Type: application/json' \
+  -d '{"bundle":{"manifest_version":"echo.manifest.v1","protocol_version":"ECHO/1.0","objects":[]},"skip_signature":true}'
+```
+
+Node stats:
+
+```bash
+curl -s 'http://127.0.0.1:8080/stats'
+curl -s 'http://127.0.0.1:8080/stats?history=10'
+```
+
+`/stats` includes object/index counters and latest simulator report metadata (when
+`tools/out/sim_report_*.json` exists).
+If available, stats also includes normalized simulator metrics contract:
+- `time_to_find_ticks`
+- `useful_hit_rate_top5_pct`
+- `false_promotion_rate_pct`
+- `missed_promotion_rate_pct`
+- `spam_survival_rate_pct`
+Use `history=<N>` to include recent simulator trend rows in `simulator_history`.
+
+Node capabilities descriptor:
+
+```bash
+curl -s 'http://127.0.0.1:8080/registry/capabilities'
+```
+
+## Signature Policy
+
+CLI and HTTP default behavior validates non-empty `signature`.
+`--skip-signature` is available for dev/simulation flows.
+
+To force strict policy in CLI flows:
+
+```bash
+python3 reference-node/echo_node.py --require-signature validate --type eo --file reference-node/sample_data/eo.sample.json
+```
+
+When `--require-signature` is enabled, combining it with `--skip-signature` is rejected.
 
 Reputation stub:
 
@@ -183,6 +280,8 @@ curl -s http://127.0.0.1:8080/reputation/did:echo:agent.sample.2
 - EO with `outcome_metrics` gets a bonus
 - `SUCCESS` receipts from stored `rr` objects increase rank
 
+`explain=true` adds per-result `score_explain` payload to make ranking decisions transparent.
+
 This is a v0 stub to prepare for semantic ranking and reputation integration.
 
 ## Smoke Tests
@@ -194,13 +293,26 @@ This is a v0 stub to prepare for semantic ranking and reputation integration.
 Script checks:
 - CLI validate/store/search/index/export/import
 - HTTP startup + `/health`
-- HTTP `POST /objects` and `GET /search?rank=true`
+- HTTP `POST /objects`, `GET /objects/{type}/{id}`, `GET /search?rank=true`
+- HTTP `GET /bundles/export`, `POST /bundles/import`, `GET /stats`
 
 If HTTP deps are not installed, HTTP section is skipped by default.
 To require HTTP section and fail when unavailable:
 
 ```bash
 SMOKE_REQUIRE_HTTP=1 ./reference-node/run_smoke_tests.sh
+```
+
+## Unit Tests
+
+```bash
+pytest reference-node/tests
+```
+
+## Release Check
+
+```bash
+bash tools/release_check.sh
 ```
 
 ## Simulation Through Reference Node

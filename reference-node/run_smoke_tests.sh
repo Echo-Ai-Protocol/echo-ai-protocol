@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# NOTE: This script is intentionally smoke-only.
+# Unit tests are executed separately via pytest.
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 NODE="$ROOT_DIR/reference-node/echo_node.py"
 SERVER="$ROOT_DIR/reference-node/server.py"
@@ -19,6 +22,11 @@ BUNDLE_FILE=""
 HTTP_PAYLOAD=""
 HTTP_POST_OUT="/tmp/echo-http-post.out"
 HTTP_SEARCH_OUT="/tmp/echo-http-search.out"
+HTTP_OBJ_OUT="/tmp/echo-http-object.out"
+HTTP_STATS_OUT="/tmp/echo-http-stats.out"
+HTTP_BUNDLE_OUT="/tmp/echo-http-bundle.out"
+HTTP_CAPS_OUT="/tmp/echo-http-capabilities.out"
+HTTP_BUNDLE_IMPORT_PAYLOAD=""
 
 TYPES=(eo trace request rr aao referral seedupdate)
 
@@ -38,7 +46,11 @@ cleanup() {
   if [[ -n "${HTTP_PAYLOAD:-}" ]]; then
     rm -f "$HTTP_PAYLOAD" || true
   fi
-  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" || true
+  if [[ -n "${HTTP_BUNDLE_IMPORT_PAYLOAD:-}" ]]; then
+    rm -f "$HTTP_BUNDLE_IMPORT_PAYLOAD" || true
+  fi
+  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" "$HTTP_CAPS_OUT" || true
+  rm -f /tmp/echo-sig-guard.out || true
 }
 trap cleanup EXIT
 
@@ -121,6 +133,16 @@ run_cli_smoke() {
       return 1
     fi
     print_pass "validate --skip-signature $t"
+
+    if [[ "$t" == "eo" ]]; then
+      echo "[SMOKE] signature policy guard (eo)"
+      if run_node validate --require-signature --skip-signature --type eo --file "$f" >/tmp/echo-sig-guard.out 2>&1; then
+        cat /tmp/echo-sig-guard.out
+        print_fail "expected require-signature to reject --skip-signature"
+        return 1
+      fi
+      print_pass "signature policy guard eo"
+    fi
 
     echo "[SMOKE] store ($t)"
     if ! out="$(run_node store --type "$t" --file "$f" 2>&1)"; then
@@ -289,9 +311,32 @@ PY
   fi
   print_pass "HTTP POST /objects"
 
-  echo "[SMOKE] HTTP GET /search rank=true"
+  echo "[SMOKE] HTTP GET /objects/{type}/{id}"
+  http_code="$(curl -sS -o "$HTTP_OBJ_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/objects/eo/echo.eo.http.smoke.v1")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_OBJ_OUT"
+    print_fail "HTTP GET /objects/{type}/{id} failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_OBJ_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+if payload.get("id") != "echo.eo.http.smoke.v1":
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_OBJ_OUT"
+    print_fail "HTTP GET /objects returned unexpected payload"
+    return 1
+  fi
+  print_pass "HTTP GET /objects/{type}/{id}"
+
+  echo "[SMOKE] HTTP GET /search rank=true&explain=true"
   http_code="$(curl -sS -o "$HTTP_SEARCH_OUT" -w '%{http_code}' \
-    "http://$SERVER_HOST:$SERVER_PORT/search?type=eo&field=eo_id&op=contains&value=echo.eo.http&rank=true")"
+    "http://$SERVER_HOST:$SERVER_PORT/search?type=eo&field=eo_id&op=contains&value=echo.eo.http&rank=true&explain=true")"
   if [[ "$http_code" != "200" ]]; then
     cat "$HTTP_SEARCH_OUT"
     print_fail "HTTP GET /search failed with status $http_code"
@@ -305,13 +350,115 @@ with open(sys.argv[1], "r", encoding="utf-8") as f:
     payload = json.load(f)
 if int(payload.get("count", 0)) < 1:
     raise SystemExit(1)
+if payload.get("explain") is not True:
+    raise SystemExit(1)
+first = payload.get("results", [{}])[0]
+if "score_explain" not in first:
+    raise SystemExit(1)
 PY
   then
     cat "$HTTP_SEARCH_OUT"
     print_fail "HTTP GET /search returned empty results"
     return 1
   fi
-  print_pass "HTTP GET /search rank=true"
+  print_pass "HTTP GET /search rank=true&explain=true"
+
+  echo "[SMOKE] HTTP GET /bundles/export"
+  http_code="$(curl -sS -o "$HTTP_BUNDLE_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/bundles/export?type=eo")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_BUNDLE_OUT"
+    print_fail "HTTP GET /bundles/export failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_BUNDLE_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+objs = payload.get("objects")
+if not isinstance(objs, list) or len(objs) < 1:
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_BUNDLE_OUT"
+    print_fail "HTTP GET /bundles/export returned invalid bundle"
+    return 1
+  fi
+  print_pass "HTTP GET /bundles/export"
+
+  HTTP_BUNDLE_IMPORT_PAYLOAD="$(mktemp /tmp/echo-http-bundle-import.XXXXXX.json)"
+  python3 - "$HTTP_BUNDLE_OUT" "$HTTP_BUNDLE_IMPORT_PAYLOAD" <<'PY'
+import json
+import sys
+bundle_path, out_path = sys.argv[1], sys.argv[2]
+with open(bundle_path, "r", encoding="utf-8") as f:
+    bundle = json.load(f)
+payload = {"bundle": bundle, "skip_signature": False}
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False)
+PY
+
+  echo "[SMOKE] HTTP POST /bundles/import"
+  http_code="$(curl -sS -o "$HTTP_POST_OUT" -w '%{http_code}' \
+    -X POST "http://$SERVER_HOST:$SERVER_PORT/bundles/import" \
+    -H 'Content-Type: application/json' \
+    --data-binary "@$HTTP_BUNDLE_IMPORT_PAYLOAD")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_POST_OUT"
+    print_fail "HTTP POST /bundles/import failed with status $http_code"
+    return 1
+  fi
+  print_pass "HTTP POST /bundles/import"
+
+  echo "[SMOKE] HTTP GET /stats?history=3"
+  http_code="$(curl -sS -o "$HTTP_STATS_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/stats?history=3")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_STATS_OUT"
+    print_fail "HTTP GET /stats failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_STATS_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+counts = payload.get("objects", {}).get("counts", {})
+if int(counts.get("eo", 0)) < 1:
+    raise SystemExit(1)
+if "simulator_history" not in payload:
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_STATS_OUT"
+    print_fail "HTTP GET /stats returned unexpected counts"
+    return 1
+  fi
+  print_pass "HTTP GET /stats"
+
+  echo "[SMOKE] HTTP GET /registry/capabilities"
+  http_code="$(curl -sS -o "$HTTP_CAPS_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/registry/capabilities")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_CAPS_OUT"
+    print_fail "HTTP GET /registry/capabilities failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_CAPS_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+if payload.get("features", {}).get("http") is not True:
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_CAPS_OUT"
+    print_fail "HTTP GET /registry/capabilities returned unexpected payload"
+    return 1
+  fi
+  print_pass "HTTP GET /registry/capabilities"
 
   cleanup
   return 0

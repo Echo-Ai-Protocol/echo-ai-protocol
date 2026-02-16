@@ -1,57 +1,62 @@
-# Reference Node API (Minimal)
+# Reference Node API (Hybrid v1)
 
-This is a suggested API surface for reference nodes.
-It is not mandatory, but helps interoperability.
+This is the concrete HTTP surface implemented by `reference-node/server.py`.
 
-## Endpoints (conceptual)
+## Implemented endpoints
+
+### GET /health
+Returns node status and active config flags.
 
 ### POST /objects
-Accepts a single object (any supported type).
-- validates schema
-- stores if accepted
-- returns status
+Body:
+- `type`: object type (`eo|trace|request|rr|aao|referral|seedupdate`)
+- `object_json`: object payload
+- `skip_signature` (optional bool)
 
-### POST /bundle/import
-Accepts JSONL bundle.
-- validates each line
-- stores accepted objects
-- returns report
+Behavior:
+- validates against manifest-routed schema
+- stores to local object store
 
-### GET /bundle/export?types=...&since=...
-Exports JSONL bundle filtered by type and time.
+### GET /objects/{type}/{object_id}
+Fetches one stored object by typed ID.
 
-### POST /search/eo
-Input:
-- problem_embedding
-- constraints_embedding
-Filters:
-- freshness_window_seconds
-- share_level
-Output:
-- ranked list of eo_id + scores
+### GET /search
+Query params:
+- `type`
+- `field`
+- `op=equals|contains|prefix`
+- `value`
+- `rank=true|false` (EO ranking v0)
+- `explain=true|false` (attach score components)
+- `limit` (0..1000)
 
-### POST /search/trace
-Input:
-- domain_embedding
-Filters:
-- activity_type
-- freshness_window_seconds
+### GET /bundles/export?type=...
+Exports stored objects for one type as JSON bundle.
 
-### POST /search/request
-Input:
-- request_embedding
-- constraints_embedding
-Filters:
-- freshness_window_seconds
+### POST /bundles/import
+Body:
+- `bundle` (JSON object)
+- `skip_signature` (optional bool)
 
-## Validation behavior
+Behavior:
+- validates all objects first
+- stores only if bundle fully valid
 
-- reject schema-invalid objects
-- apply anti-abuse rate limits (local policy)
-- if pow_lite enabled locally, MAY require pow_nonce
+### GET /stats?history=N
+Returns:
+- object counts and index health
+- latest simulator report parse
+- normalized metrics contract (`metrics_v1`)
+- optional `simulator_history` for recent reports
+
+### GET /registry/capabilities
+Returns local node capabilities descriptor.
+
+### GET /reputation/{agent_did}
+Current stub: receipt-based score if receipts exist, otherwise `0`.
 
 ## Security notes
 
-- do not log raw prompts
-- do not store PII
-- treat embeddings as sensitive metadata
+- validation failures return explicit details
+- signature bypass is intended for dev flows
+- strict signature mode can be enabled on server start
