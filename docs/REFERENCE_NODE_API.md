@@ -1,6 +1,7 @@
 # Reference Node API (Hybrid v1)
 
 This is the concrete HTTP surface implemented by `reference-node/server.py`.
+Companion client quickstart is available in `sdk/python`.
 
 ## Implemented endpoints
 

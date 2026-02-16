@@ -21,3 +21,6 @@ If a reference node is running, first useful calls:
 - `GET /registry/capabilities`
 - `GET /registry/bootstrap`
 - `GET /search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true`
+
+Python quickstart client:
+- `python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080`

@@ -27,6 +27,7 @@ HTTP_STATS_OUT="/tmp/echo-http-stats.out"
 HTTP_BUNDLE_OUT="/tmp/echo-http-bundle.out"
 HTTP_CAPS_OUT="/tmp/echo-http-capabilities.out"
 HTTP_BOOTSTRAP_OUT="/tmp/echo-http-bootstrap.out"
+HTTP_SDK_OUT="/tmp/echo-http-sdk.out"
 HTTP_BUNDLE_IMPORT_PAYLOAD=""
 
 TYPES=(eo trace request rr aao referral seedupdate)
@@ -50,7 +51,7 @@ cleanup() {
   if [[ -n "${HTTP_BUNDLE_IMPORT_PAYLOAD:-}" ]]; then
     rm -f "$HTTP_BUNDLE_IMPORT_PAYLOAD" || true
   fi
-  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" "$HTTP_CAPS_OUT" "$HTTP_BOOTSTRAP_OUT" || true
+  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" "$HTTP_CAPS_OUT" "$HTTP_BOOTSTRAP_OUT" "$HTTP_SDK_OUT" || true
   rm -f /tmp/echo-sig-guard.out || true
 }
 trap cleanup EXIT
@@ -73,6 +74,14 @@ id_field_for_type() {
 
 sample_file_for_type() {
   echo "$SAMPLE_DIR/$1.sample.json"
+}
+
+make_temp_json() {
+  local prefix="$1"
+  local tmp
+  tmp="$(mktemp -t "$prefix")"
+  mv "$tmp" "${tmp}.json"
+  echo "${tmp}.json"
 }
 
 run_node() {
@@ -200,7 +209,7 @@ run_cli_smoke() {
   fi
   print_pass "search prefix eo"
 
-  BUNDLE_FILE="$(mktemp /tmp/echo-bundle.XXXXXX.json)"
+  BUNDLE_FILE="$(make_temp_json echo-bundle)"
 
   echo "[SMOKE] export bundle (eo)"
   if ! out="$(run_node export --type eo --out "$BUNDLE_FILE" 2>&1)"; then
@@ -286,7 +295,7 @@ run_http_smoke() {
   fi
   print_pass "server health"
 
-  HTTP_PAYLOAD="$(mktemp /tmp/echo-http-payload.XXXXXX.json)"
+  HTTP_PAYLOAD="$(make_temp_json echo-http-payload)"
   python3 - "$SAMPLE_DIR/eo.sample.json" "$HTTP_PAYLOAD" <<'PY'
 import json
 import sys
@@ -388,7 +397,7 @@ PY
   fi
   print_pass "HTTP GET /bundles/export"
 
-  HTTP_BUNDLE_IMPORT_PAYLOAD="$(mktemp /tmp/echo-http-bundle-import.XXXXXX.json)"
+  HTTP_BUNDLE_IMPORT_PAYLOAD="$(make_temp_json echo-http-bundle-import)"
   python3 - "$HTTP_BUNDLE_OUT" "$HTTP_BUNDLE_IMPORT_PAYLOAD" <<'PY'
 import json
 import sys
@@ -487,6 +496,14 @@ PY
     return 1
   fi
   print_pass "HTTP GET /registry/bootstrap"
+
+  echo "[SMOKE] SDK quickstart flow"
+  if ! python3 "$ROOT_DIR/sdk/python/quickstart.py" --base-url "http://$SERVER_HOST:$SERVER_PORT" >"$HTTP_SDK_OUT" 2>&1; then
+    cat "$HTTP_SDK_OUT"
+    print_fail "SDK quickstart flow failed"
+    return 1
+  fi
+  print_pass "SDK quickstart flow"
 
   cleanup
   return 0

@@ -21,6 +21,7 @@ Hybrid v1 combines:
 - `docs/adr/ADR-0004-v1-4-simulator-metrics-contract.md` — V1.4 simulator metrics contract
 - `docs/adr/ADR-0005-v1-5-explainable-search-and-metrics-history.md` — V1.5 explainable ranking + trend stats
 - `docs/adr/ADR-0006-v1-6-bootstrap-and-metric-trends.md` — V1.6 agent bootstrap + simulator trend deltas
+- `docs/adr/ADR-0007-v1-7-python-sdk-quickstart.md` — V1.7 minimal agent SDK quickstart
 
 ## Quickstart (CLI)
 
@@ -82,6 +83,22 @@ curl -s 'http://127.0.0.1:8080/registry/capabilities'
 curl -s 'http://127.0.0.1:8080/registry/bootstrap'
 ```
 
+## Agent SDK Quickstart (Python)
+
+Minimal stdlib-only SDK lives in `sdk/python/`.
+
+Run the quickstart flow (health -> bootstrap -> store EO -> ranked search -> store RR):
+
+```bash
+python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080
+```
+
+SDK docs:
+
+```bash
+cat sdk/python/README.md
+```
+
 ### Ranking v0 (`rank=true`)
 
 For `type=eo`, trust-weighted ranking uses:
@@ -125,6 +142,7 @@ Metrics contract (`echo.sim.metrics.v1`) emitted by simulator:
 - `examples/` — sample protocol objects + simulation states
 - `reference-node/` — CLI + HTTP local node
   - `reference-node/reference_node/` — importable core library (v1.1)
+- `sdk/` — lightweight client SDKs and integration quickstarts
 - `tools/` — simulation scripts/utilities
 - `core/` — Canonical Core service docs (registry/index/reputation/routing)
 
