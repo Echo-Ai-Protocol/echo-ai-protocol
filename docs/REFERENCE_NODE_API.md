@@ -48,9 +48,14 @@ Returns:
 - latest simulator report parse
 - normalized metrics contract (`metrics_v1`)
 - optional `simulator_history` for recent reports
+- `simulator_trend` (latest vs previous deltas + direction)
 
 ### GET /registry/capabilities
 Returns local node capabilities descriptor.
+
+### GET /registry/bootstrap
+Returns machine-readable onboarding payload with object types, search ops,
+ranking flags, and endpoint map.
 
 ### GET /reputation/{agent_did}
 Current stub: receipt-based score if receipts exist, otherwise `0`.

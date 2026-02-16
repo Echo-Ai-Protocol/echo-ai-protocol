@@ -56,3 +56,26 @@ def test_evaluate_sim_metrics_v1_returns_checks() -> None:
     assert "checks" in result
     assert isinstance(result["overall_pass"], bool)
 
+
+def test_trend_sim_metrics_v1_direction() -> None:
+    previous = {
+        "time_to_find_ticks": 20.0,
+        "useful_hit_rate_top5_pct": 70.0,
+        "false_promotion_rate_pct": 4.0,
+        "missed_promotion_rate_pct": 30.0,
+        "spam_survival_rate_pct": 25.0,
+    }
+    latest = {
+        "time_to_find_ticks": 15.0,
+        "useful_hit_rate_top5_pct": 75.0,
+        "false_promotion_rate_pct": 3.5,
+        "missed_promotion_rate_pct": 35.0,
+        "spam_survival_rate_pct": 25.0,
+    }
+    trend = core.trend_sim_metrics_v1(latest, previous)
+    assert trend["delta"]["time_to_find_ticks"] == -5.0
+    assert trend["direction"]["time_to_find_ticks"] == "improved"
+    assert trend["direction"]["useful_hit_rate_top5_pct"] == "improved"
+    assert trend["direction"]["false_promotion_rate_pct"] == "improved"
+    assert trend["direction"]["missed_promotion_rate_pct"] == "regressed"
+    assert trend["direction"]["spam_survival_rate_pct"] == "same"

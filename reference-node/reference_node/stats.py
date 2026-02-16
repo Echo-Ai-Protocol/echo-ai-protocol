@@ -7,7 +7,12 @@ from typing import Any, Dict, List
 
 from .index import index_path, load_index
 from .io_utils import default_tools_out_dir, load_json
-from .metrics import SIM_METRICS_CONTRACT_VERSION, evaluate_sim_metrics_v1, extract_sim_metrics_v1
+from .metrics import (
+    SIM_METRICS_CONTRACT_VERSION,
+    evaluate_sim_metrics_v1,
+    extract_sim_metrics_v1,
+    trend_sim_metrics_v1,
+)
 from .store import iter_stored_paths
 from .types import TYPE_DIR
 
@@ -97,6 +102,39 @@ def _sim_history_payload(tools_out_dir: Path, limit: int) -> List[Dict[str, Any]
     return history
 
 
+def _sim_trend_payload(history: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if len(history) < 2:
+        return {
+            "has_baseline": False,
+            "latest_path": history[0]["path"] if history else None,
+            "previous_path": None,
+            "delta": {},
+            "direction": {},
+        }
+
+    latest = history[0]
+    previous = history[1]
+    latest_metrics = latest.get("metrics_v1")
+    previous_metrics = previous.get("metrics_v1")
+    if not isinstance(latest_metrics, dict) or not isinstance(previous_metrics, dict):
+        return {
+            "has_baseline": False,
+            "latest_path": latest.get("path"),
+            "previous_path": previous.get("path"),
+            "delta": {},
+            "direction": {},
+        }
+
+    trend = trend_sim_metrics_v1(latest_metrics, previous_metrics)
+    return {
+        "has_baseline": True,
+        "latest_path": latest.get("path"),
+        "previous_path": previous.get("path"),
+        "delta": trend.get("delta", {}),
+        "direction": trend.get("direction", {}),
+    }
+
+
 def compute_stats(storage_root: Path, tools_out_dir: Path | None = None, history_limit: int = 0) -> Dict[str, Any]:
     idx = load_index(storage_root)
     idx_path = index_path(storage_root)
@@ -121,6 +159,7 @@ def compute_stats(storage_root: Path, tools_out_dir: Path | None = None, history
                 missing += 1
         index_missing_files[object_type] = missing
 
+    history = _sim_history_payload(out_dir, history_limit)
     return {
         "storage_root": str(storage_root),
         "index": {
@@ -134,5 +173,6 @@ def compute_stats(storage_root: Path, tools_out_dir: Path | None = None, history
             "total": sum(stored_counts.values()),
         },
         "simulator": _latest_sim_report_payload(out_dir),
-        "simulator_history": _sim_history_payload(out_dir, history_limit),
+        "simulator_history": history,
+        "simulator_trend": _sim_trend_payload(history),
     }

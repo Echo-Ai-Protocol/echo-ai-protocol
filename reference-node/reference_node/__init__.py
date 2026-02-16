@@ -10,9 +10,11 @@ from .io_bundle import (
 )
 from .metrics import (
     SIM_METRICS_CONTRACT_VERSION,
+    SIM_METRIC_GOALS,
     SIM_METRIC_TARGETS,
     evaluate_sim_metrics_v1,
     extract_sim_metrics_v1,
+    trend_sim_metrics_v1,
 )
 from .io_utils import (
     default_capabilities_path,
@@ -43,6 +45,7 @@ __all__ = [
     "TYPE_DIR",
     "TYPE_TO_FAMILY",
     "SIM_METRICS_CONTRACT_VERSION",
+    "SIM_METRIC_GOALS",
     "SIM_METRIC_TARGETS",
     "default_capabilities_path",
     "default_manifest_path",
@@ -71,6 +74,7 @@ __all__ = [
     "search_objects",
     "evaluate_sim_metrics_v1",
     "extract_sim_metrics_v1",
+    "trend_sim_metrics_v1",
     "storage_path_for_id",
     "store_object",
     "type_to_family",

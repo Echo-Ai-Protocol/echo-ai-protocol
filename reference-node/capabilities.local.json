@@ -10,6 +10,10 @@
     "search_ops": ["equals", "contains", "prefix"],
     "bundle_import_export": true,
     "trust_weighted_ranking_v0": true,
+    "search_explain": true,
+    "stats_history": true,
+    "stats_trend": true,
+    "registry_bootstrap": true,
     "signature_policy_toggle": true
   },
   "limits": {

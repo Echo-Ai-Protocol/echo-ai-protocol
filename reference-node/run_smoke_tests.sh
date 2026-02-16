@@ -26,6 +26,7 @@ HTTP_OBJ_OUT="/tmp/echo-http-object.out"
 HTTP_STATS_OUT="/tmp/echo-http-stats.out"
 HTTP_BUNDLE_OUT="/tmp/echo-http-bundle.out"
 HTTP_CAPS_OUT="/tmp/echo-http-capabilities.out"
+HTTP_BOOTSTRAP_OUT="/tmp/echo-http-bootstrap.out"
 HTTP_BUNDLE_IMPORT_PAYLOAD=""
 
 TYPES=(eo trace request rr aao referral seedupdate)
@@ -49,7 +50,7 @@ cleanup() {
   if [[ -n "${HTTP_BUNDLE_IMPORT_PAYLOAD:-}" ]]; then
     rm -f "$HTTP_BUNDLE_IMPORT_PAYLOAD" || true
   fi
-  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" "$HTTP_CAPS_OUT" || true
+  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" "$HTTP_CAPS_OUT" "$HTTP_BOOTSTRAP_OUT" || true
   rm -f /tmp/echo-sig-guard.out || true
 }
 trap cleanup EXIT
@@ -429,6 +430,8 @@ if int(counts.get("eo", 0)) < 1:
     raise SystemExit(1)
 if "simulator_history" not in payload:
     raise SystemExit(1)
+if "simulator_trend" not in payload:
+    raise SystemExit(1)
 PY
   then
     cat "$HTTP_STATS_OUT"
@@ -459,6 +462,31 @@ PY
     return 1
   fi
   print_pass "HTTP GET /registry/capabilities"
+
+  echo "[SMOKE] HTTP GET /registry/bootstrap"
+  http_code="$(curl -sS -o "$HTTP_BOOTSTRAP_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/registry/bootstrap")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_BOOTSTRAP_OUT"
+    print_fail "HTTP GET /registry/bootstrap failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_BOOTSTRAP_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+if payload.get("bootstrap_version") != "echo.node.bootstrap.v1":
+    raise SystemExit(1)
+if payload.get("endpoints", {}).get("search", {}).get("path") != "/search":
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_BOOTSTRAP_OUT"
+    print_fail "HTTP GET /registry/bootstrap returned unexpected payload"
+    return 1
+  fi
+  print_pass "HTTP GET /registry/bootstrap"
 
   cleanup
   return 0
