@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import copy
 import json
 import os
 import random
@@ -490,6 +491,23 @@ def simulate(
 
     a1 = params.baseline_spam_survival_rate + (5.0 if trace_flood_rate > 0 else 0.0)
 
+    metrics_v1 = {
+        "time_to_find_ticks": int(d2),
+        "useful_hit_rate_top5_pct": round(d1, 2),
+        "false_promotion_rate_pct": round(t1, 2),
+        "missed_promotion_rate_pct": round(t2, 2),
+        "spam_survival_rate_pct": round(a1, 2),
+    }
+    legacy_metrics = {
+        "D1_useful_top5": metrics_v1["useful_hit_rate_top5_pct"],
+        "D2_time_to_find_ticks": metrics_v1["time_to_find_ticks"],
+        "T1_false_promotion_rate": metrics_v1["false_promotion_rate_pct"],
+        "T2_missed_promotion_rate": metrics_v1["missed_promotion_rate_pct"],
+        "A1_spam_survival_rate": metrics_v1["spam_survival_rate_pct"],
+        "P1_avg_trace_lifetime_ticks": int(params.trace_ttl_ticks),
+        "C1_bootstrap_success": True,
+    }
+
     report = {
         "agents_total": agents_total,
         "objects": {
@@ -497,15 +515,8 @@ def simulate(
             "eos_useful": eos_useful,
             "eos_bad": eos_bad
         },
-        "metrics": {
-            "D1_useful_top5": round(d1, 2),
-            "D2_time_to_find_ticks": int(d2),
-            "T1_false_promotion_rate": round(t1, 2),
-            "T2_missed_promotion_rate": round(t2, 2),
-            "A1_spam_survival_rate": round(a1, 2),
-            "P1_avg_trace_lifetime_ticks": int(params.trace_ttl_ticks),
-            "C1_bootstrap_success": True
-        }
+        "metrics": {**metrics_v1, **legacy_metrics},
+        "metrics_contract_version": "echo.sim.metrics.v1",
     }
 
     if use_reference_node:
@@ -584,7 +595,15 @@ def main():
         report["objects"]["eos_bad"],
     )
     print("\nMetrics:")
-    for k, v in report["metrics"].items():
+    metrics_to_print = [
+        "time_to_find_ticks",
+        "useful_hit_rate_top5_pct",
+        "false_promotion_rate_pct",
+        "missed_promotion_rate_pct",
+        "spam_survival_rate_pct",
+    ]
+    for k in metrics_to_print:
+        v = report.get("metrics", {}).get(k)
         print(f"  - {k}: {v}")
 
     if "reference_node" in report:
@@ -608,7 +627,12 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
 
+    latest_path = os.path.join(out_dir, "sim_report_latest.json")
+    with open(latest_path, "w", encoding="utf-8") as f:
+        json.dump(copy.deepcopy(report), f, ensure_ascii=False, indent=2)
+
     print("\nWrote:", out_path)
+    print("Wrote:", latest_path)
 
 
 if __name__ == "__main__":

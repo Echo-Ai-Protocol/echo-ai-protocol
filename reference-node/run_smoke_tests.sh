@@ -334,9 +334,9 @@ PY
   fi
   print_pass "HTTP GET /objects/{type}/{id}"
 
-  echo "[SMOKE] HTTP GET /search rank=true"
+  echo "[SMOKE] HTTP GET /search rank=true&explain=true"
   http_code="$(curl -sS -o "$HTTP_SEARCH_OUT" -w '%{http_code}' \
-    "http://$SERVER_HOST:$SERVER_PORT/search?type=eo&field=eo_id&op=contains&value=echo.eo.http&rank=true")"
+    "http://$SERVER_HOST:$SERVER_PORT/search?type=eo&field=eo_id&op=contains&value=echo.eo.http&rank=true&explain=true")"
   if [[ "$http_code" != "200" ]]; then
     cat "$HTTP_SEARCH_OUT"
     print_fail "HTTP GET /search failed with status $http_code"
@@ -350,13 +350,18 @@ with open(sys.argv[1], "r", encoding="utf-8") as f:
     payload = json.load(f)
 if int(payload.get("count", 0)) < 1:
     raise SystemExit(1)
+if payload.get("explain") is not True:
+    raise SystemExit(1)
+first = payload.get("results", [{}])[0]
+if "score_explain" not in first:
+    raise SystemExit(1)
 PY
   then
     cat "$HTTP_SEARCH_OUT"
     print_fail "HTTP GET /search returned empty results"
     return 1
   fi
-  print_pass "HTTP GET /search rank=true"
+  print_pass "HTTP GET /search rank=true&explain=true"
 
   echo "[SMOKE] HTTP GET /bundles/export"
   http_code="$(curl -sS -o "$HTTP_BUNDLE_OUT" -w '%{http_code}' \
@@ -406,9 +411,9 @@ PY
   fi
   print_pass "HTTP POST /bundles/import"
 
-  echo "[SMOKE] HTTP GET /stats"
+  echo "[SMOKE] HTTP GET /stats?history=3"
   http_code="$(curl -sS -o "$HTTP_STATS_OUT" -w '%{http_code}' \
-    "http://$SERVER_HOST:$SERVER_PORT/stats")"
+    "http://$SERVER_HOST:$SERVER_PORT/stats?history=3")"
   if [[ "$http_code" != "200" ]]; then
     cat "$HTTP_STATS_OUT"
     print_fail "HTTP GET /stats failed with status $http_code"
@@ -421,6 +426,8 @@ with open(sys.argv[1], "r", encoding="utf-8") as f:
     payload = json.load(f)
 counts = payload.get("objects", {}).get("counts", {})
 if int(counts.get("eo", 0)) < 1:
+    raise SystemExit(1)
+if "simulator_history" not in payload:
     raise SystemExit(1)
 PY
   then

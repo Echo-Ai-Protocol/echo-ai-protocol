@@ -8,6 +8,12 @@ from .io_bundle import (
     import_bundle_payload,
     infer_object_type,
 )
+from .metrics import (
+    SIM_METRICS_CONTRACT_VERSION,
+    SIM_METRIC_TARGETS,
+    evaluate_sim_metrics_v1,
+    extract_sim_metrics_v1,
+)
 from .io_utils import (
     default_capabilities_path,
     default_manifest_path,
@@ -36,6 +42,8 @@ __all__ = [
     "SEARCH_OPS",
     "TYPE_DIR",
     "TYPE_TO_FAMILY",
+    "SIM_METRICS_CONTRACT_VERSION",
+    "SIM_METRIC_TARGETS",
     "default_capabilities_path",
     "default_manifest_path",
     "default_schemas_dir",
@@ -61,6 +69,8 @@ __all__ = [
     "save_index",
     "schema_id_for_type",
     "search_objects",
+    "evaluate_sim_metrics_v1",
+    "extract_sim_metrics_v1",
     "storage_path_for_id",
     "store_object",
     "type_to_family",

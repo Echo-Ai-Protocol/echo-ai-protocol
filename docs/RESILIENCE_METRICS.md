@@ -32,3 +32,11 @@ This document defines qualitative and quantitative metrics for ECHO resilience.
 - O1: Validation rejection rate under spam
 - O2: TTL GC effectiveness (expired objects removed promptly)
 - O3: Storage growth boundedness for ephemeral objects
+
+## Simulator contract mapping (echo.sim.metrics.v1)
+
+- `time_to_find_ticks` -> D2
+- `useful_hit_rate_top5_pct` -> D1
+- `false_promotion_rate_pct` -> T1
+- `missed_promotion_rate_pct` -> T2
+- `spam_survival_rate_pct` -> A1

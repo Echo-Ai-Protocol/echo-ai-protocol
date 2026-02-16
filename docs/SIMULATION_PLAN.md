@@ -88,3 +88,15 @@ If any of the following occurs, tuning is required:
 - Experiment matrix filled (docs/EXPERIMENT_MATRIX.md)
 - Tuning deltas proposed (manifest changes)
 - Updated adversarial tuning notes (docs/ADVERSARIAL_TUNING.md)
+
+## Metrics Contract (v1)
+
+Machine-readable simulator reports SHOULD include:
+- `time_to_find_ticks`
+- `useful_hit_rate_top5_pct`
+- `false_promotion_rate_pct`
+- `missed_promotion_rate_pct`
+- `spam_survival_rate_pct`
+
+Legacy aliases (`D1`, `T1`, etc.) may remain during transition, but new tooling
+should consume canonical names.

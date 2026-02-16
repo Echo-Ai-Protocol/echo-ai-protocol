@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import reference_node as core
@@ -68,7 +69,13 @@ def test_stats_include_latest_simulation_report(tmp_path: Path, sample_dir: Path
     report_path.write_text(
         json.dumps(
             {
-                "metrics": {"time_to_find_ticks": 2, "useful_hit_rate_top5": 0.8},
+                "metrics": {
+                    "D2_time_to_find_ticks": 2,
+                    "D1_useful_top5": 0.8,
+                    "T1_false_promotion_rate": 0.04,
+                    "T2_missed_promotion_rate": 0.2,
+                    "A1_spam_survival_rate": 0.3,
+                },
                 "reference_node": {"enabled": True},
             }
         ),
@@ -80,4 +87,55 @@ def test_stats_include_latest_simulation_report(tmp_path: Path, sample_dir: Path
     assert sim["found"] is True
     assert sim["path"] == str(report_path)
     assert isinstance(sim["report"], dict)
-    assert sim["report"]["metrics"]["time_to_find_ticks"] == 2
+    assert sim["contract_version"] == core.SIM_METRICS_CONTRACT_VERSION
+    assert sim["metrics_v1"]["time_to_find_ticks"] == 2.0
+    assert sim["metrics_v1"]["useful_hit_rate_top5_pct"] == 80.0
+    assert sim["metrics_v1"]["false_promotion_rate_pct"] == 4.0
+    assert isinstance(sim["evaluation_v1"]["overall_pass"], bool)
+
+
+def test_stats_include_simulation_history(tmp_path: Path) -> None:
+    storage_root = tmp_path / "storage"
+    tools_out = tmp_path / "tools_out"
+    tools_out.mkdir(parents=True, exist_ok=True)
+
+    older = tools_out / "sim_report_old.json"
+    newer = tools_out / "sim_report_new.json"
+
+    older.write_text(
+        json.dumps(
+            {
+                "metrics": {
+                    "time_to_find_ticks": 20,
+                    "useful_hit_rate_top5_pct": 70,
+                    "false_promotion_rate_pct": 2,
+                    "missed_promotion_rate_pct": 25,
+                    "spam_survival_rate_pct": 21,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    newer.write_text(
+        json.dumps(
+            {
+                "metrics": {
+                    "time_to_find_ticks": 10,
+                    "useful_hit_rate_top5_pct": 80,
+                    "false_promotion_rate_pct": 1,
+                    "missed_promotion_rate_pct": 18,
+                    "spam_survival_rate_pct": 17,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    os.utime(older, (1000, 1000))
+    os.utime(newer, (2000, 2000))
+
+    stats = core.compute_stats(storage_root, tools_out_dir=tools_out, history_limit=2)
+    history = stats["simulator_history"]
+    assert len(history) == 2
+    assert history[0]["path"] == str(newer)
+    assert history[1]["path"] == str(older)
+    assert history[0]["metrics_v1"]["time_to_find_ticks"] == 10.0

@@ -213,7 +213,7 @@ curl -s -X POST http://127.0.0.1:8080/objects \
 Search with ranking:
 
 ```bash
-curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true'
+curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true'
 ```
 
 Get object by ID:
@@ -235,10 +235,18 @@ Node stats:
 
 ```bash
 curl -s 'http://127.0.0.1:8080/stats'
+curl -s 'http://127.0.0.1:8080/stats?history=10'
 ```
 
 `/stats` includes object/index counters and latest simulator report metadata (when
 `tools/out/sim_report_*.json` exists).
+If available, stats also includes normalized simulator metrics contract:
+- `time_to_find_ticks`
+- `useful_hit_rate_top5_pct`
+- `false_promotion_rate_pct`
+- `missed_promotion_rate_pct`
+- `spam_survival_rate_pct`
+Use `history=<N>` to include recent simulator trend rows in `simulator_history`.
 
 Node capabilities descriptor:
 
@@ -271,6 +279,8 @@ curl -s http://127.0.0.1:8080/reputation/did:echo:agent.sample.2
 - higher `confidence_score` ranks higher
 - EO with `outcome_metrics` gets a bonus
 - `SUCCESS` receipts from stored `rr` objects increase rank
+
+`explain=true` adds per-result `score_explain` payload to make ranking decisions transparent.
 
 This is a v0 stub to prepare for semantic ranking and reputation integration.
 

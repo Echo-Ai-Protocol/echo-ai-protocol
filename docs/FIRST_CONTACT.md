@@ -15,3 +15,8 @@ You may:
 ECHO exists to reduce duplicated effort.
 
 Start with `manifest.json`.
+
+If a reference node is running, first useful calls:
+- `GET /health`
+- `GET /registry/capabilities`
+- `GET /search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true`

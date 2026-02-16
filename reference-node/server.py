@@ -73,6 +73,7 @@ class BundleImportIn(BaseModel):
 class SearchOut(BaseModel):
     count: int
     ranked: bool
+    explain: bool
     results: List[Dict[str, Any]]
 
 
@@ -100,7 +101,7 @@ def _collect_rr_stats(storage_root: Path) -> Dict[str, Dict[str, int]]:
     return stats
 
 
-def _eo_rank_score(obj: Dict[str, Any], rr_stats: Dict[str, Dict[str, int]]) -> float:
+def _eo_rank_components(obj: Dict[str, Any], rr_stats: Dict[str, Dict[str, int]]) -> Dict[str, float]:
     eo_id = str(obj.get("eo_id", ""))
     confidence = float(obj.get("confidence_score", 0.0)) if _is_number(obj.get("confidence_score")) else 0.0
     has_outcome_metrics = 1.0 if isinstance(obj.get("outcome_metrics"), dict) else 0.0
@@ -111,10 +112,28 @@ def _eo_rank_score(obj: Dict[str, Any], rr_stats: Dict[str, Dict[str, int]]) -> 
     success_rate = (success_count / total_count) if total_count > 0 else 0.0
 
     # Deterministic trust-weighted ranking v0.
-    return (confidence * 10.0) + (has_outcome_metrics * 2.0) + (success_count * 1.5) + (success_rate * 2.0)
+    weighted_confidence = confidence * 10.0
+    weighted_outcome = has_outcome_metrics * 2.0
+    weighted_success_count = success_count * 1.5
+    weighted_success_rate = success_rate * 2.0
+    score = weighted_confidence + weighted_outcome + weighted_success_count + weighted_success_rate
+    return {
+        "score": score,
+        "confidence_score": confidence,
+        "has_outcome_metrics": has_outcome_metrics,
+        "rr_success_count": success_count,
+        "rr_total_count": total_count,
+        "rr_success_rate": success_rate,
+        "weighted_confidence": weighted_confidence,
+        "weighted_outcome": weighted_outcome,
+        "weighted_success_count": weighted_success_count,
+        "weighted_success_rate": weighted_success_rate,
+    }
 
 
-def _rank_results(object_type: str, results: List[Dict[str, Any]], storage_root: Path) -> List[Dict[str, Any]]:
+def _rank_results(
+    object_type: str, results: List[Dict[str, Any]], storage_root: Path, explain: bool = False
+) -> List[Dict[str, Any]]:
     if object_type != "eo":
         return results
 
@@ -125,9 +144,13 @@ def _rank_results(object_type: str, results: List[Dict[str, Any]], storage_root:
         obj = item.get("object")
         if not isinstance(obj, dict):
             continue
-        score = _eo_rank_score(obj, rr_stats)
+        components = _eo_rank_components(obj, rr_stats)
         row = dict(item)
-        row["score"] = round(score, 6)
+        row["score"] = round(float(components.get("score", 0.0)), 6)
+        if explain:
+            row["score_explain"] = {
+                k: round(float(v), 6) for k, v in components.items() if k != "score"
+            }
         enriched.append(row)
 
     enriched.sort(
@@ -254,6 +277,7 @@ def create_app(config: NodeConfig) -> FastAPI:
         op: str = Query("equals"),
         value: str = Query(..., min_length=1),
         rank: bool = Query(False),
+        explain: bool = Query(False),
         limit: int = Query(50, ge=0, le=1000),
     ) -> SearchOut:
         if type not in core.TYPE_TO_FAMILY:
@@ -274,11 +298,16 @@ def create_app(config: NodeConfig) -> FastAPI:
 
         ranked = False
         if rank:
-            results = _rank_results(object_type=type, results=results, storage_root=config.storage_root)
+            results = _rank_results(
+                object_type=type,
+                results=results,
+                storage_root=config.storage_root,
+                explain=explain,
+            )
             ranked = True
 
         trimmed = results[:limit]
-        return SearchOut(count=len(results), ranked=ranked, results=trimmed)
+        return SearchOut(count=len(results), ranked=ranked, explain=bool(explain), results=trimmed)
 
     @app.get("/bundles/export")
     def get_bundle_export(type: str) -> Dict[str, Any]:
@@ -323,8 +352,12 @@ def create_app(config: NodeConfig) -> FastAPI:
         }
 
     @app.get("/stats")
-    def get_stats() -> Dict[str, Any]:
-        stats = core.compute_stats(config.storage_root, tools_out_dir=core.default_tools_out_dir())
+    def get_stats(history: int = Query(0, ge=0, le=100)) -> Dict[str, Any]:
+        stats = core.compute_stats(
+            config.storage_root,
+            tools_out_dir=core.default_tools_out_dir(),
+            history_limit=history,
+        )
         stats["manifest"] = str(config.manifest_path)
         stats["schemas_dir"] = str(config.schemas_dir)
         return stats
