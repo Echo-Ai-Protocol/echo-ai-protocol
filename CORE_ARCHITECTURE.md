@@ -78,3 +78,7 @@ Together they form Infrastructure v1: interoperable by design, practical at scal
 
 - `docs/adr/ADR-0001-v1-1-core-stabilization.md` captures the V1.1 move to an
   importable `reference_node` package with stable APIs and unit tests.
+- `docs/adr/ADR-0002-v1-2-launch-api-observability.md` captures the V1.2 HTTP
+  expansion (`/objects/{type}/{id}`, bundle endpoints, `/stats`) for launch usability.
+- `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` captures strict
+  signature policy controls and capability discovery hardening for launch.

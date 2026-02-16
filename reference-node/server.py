@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""ECHO Reference Node HTTP service (v0.9).
+"""ECHO Reference Node HTTP service (v1.2 launch API step).
 
 Endpoints:
 - POST /objects
+- GET /objects/{type}/{object_id}
 - GET /search
+- GET /bundles/export
+- POST /bundles/import
+- GET /stats
+- GET /registry/capabilities
 - GET /health
 - GET /reputation/{agent_did}
 """
@@ -15,9 +20,32 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
-import uvicorn
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+HTTP_IMPORT_ERROR: Exception | None = None
+try:
+    import uvicorn
+    from fastapi import FastAPI, HTTPException, Query
+    from pydantic import BaseModel, Field
+except Exception as exc:  # pragma: no cover - environment-dependent import path
+    HTTP_IMPORT_ERROR = exc
+    uvicorn = None
+
+    class BaseModel:  # type: ignore[no-redef]
+        pass
+
+    def Field(*args, **kwargs):  # type: ignore[no-redef]
+        return None
+
+    class HTTPException(Exception):  # type: ignore[no-redef]
+        def __init__(self, status_code: int, detail: Any):
+            super().__init__(f"{status_code}: {detail}")
+            self.status_code = status_code
+            self.detail = detail
+
+    def Query(default=None, **kwargs):  # type: ignore[no-redef]
+        return default
+
+    class FastAPI:  # type: ignore[no-redef]
+        pass
 
 import reference_node as core
 
@@ -27,11 +55,18 @@ class NodeConfig:
     manifest_path: Path
     schemas_dir: Path
     storage_root: Path
+    capabilities_path: Path
+    require_signature: bool = False
 
 
 class ObjectIn(BaseModel):
     type: str
     object_json: Dict[str, Any] = Field(default_factory=dict)
+    skip_signature: bool = False
+
+
+class BundleImportIn(BaseModel):
+    bundle: Dict[str, Any] = Field(default_factory=dict)
     skip_signature: bool = False
 
 
@@ -132,6 +167,11 @@ def _compute_reputation(storage_root: Path, agent_did: str) -> Dict[str, Any]:
 
 
 def create_app(config: NodeConfig) -> FastAPI:
+    if HTTP_IMPORT_ERROR is not None:
+        raise RuntimeError(
+            f"HTTP dependencies are missing. Install reference-node/requirements.txt ({HTTP_IMPORT_ERROR})"
+        )
+
     # Validate manifest early so service fails fast on bad config.
     core.load_manifest(config.manifest_path)
 
@@ -145,6 +185,7 @@ def create_app(config: NodeConfig) -> FastAPI:
             "service": "echo-reference-node",
             "manifest": str(config.manifest_path),
             "schemas_dir": str(config.schemas_dir),
+            "require_signature": config.require_signature,
         }
 
     @app.post("/objects")
@@ -156,6 +197,11 @@ def create_app(config: NodeConfig) -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Unknown type: {object_type}")
         if not isinstance(obj, dict):
             raise HTTPException(status_code=400, detail="object_json must be a JSON object")
+        if config.require_signature and payload.skip_signature:
+            raise HTTPException(
+                status_code=422,
+                detail="skip_signature is disabled when server require_signature policy is enabled",
+            )
 
         errors = core.validate_object(
             object_type=object_type,
@@ -182,6 +228,23 @@ def create_app(config: NodeConfig) -> FastAPI:
             "type": object_type,
             "id": obj_id,
             "path": str(out),
+        }
+
+    @app.get("/objects/{type}/{object_id}")
+    def get_object(type: str, object_id: str) -> Dict[str, Any]:
+        if type not in core.TYPE_TO_FAMILY:
+            raise HTTPException(status_code=400, detail=f"Unknown type: {type}")
+        try:
+            obj = core.get_object(config.storage_root, type, object_id)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=f"Object not found: {type}:{object_id}")
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Read failed: {exc}") from exc
+
+        return {
+            "type": type,
+            "id": object_id,
+            "object": obj,
         }
 
     @app.get("/search", response_model=SearchOut)
@@ -217,6 +280,67 @@ def create_app(config: NodeConfig) -> FastAPI:
         trimmed = results[:limit]
         return SearchOut(count=len(results), ranked=ranked, results=trimmed)
 
+    @app.get("/bundles/export")
+    def get_bundle_export(type: str) -> Dict[str, Any]:
+        if type not in core.TYPE_TO_FAMILY:
+            raise HTTPException(status_code=400, detail=f"Unknown type: {type}")
+
+        try:
+            return core.export_bundle_payload(
+                storage_root=config.storage_root,
+                manifest_path=config.manifest_path,
+                object_type=type,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Bundle export failed: {exc}") from exc
+
+    @app.post("/bundles/import")
+    def post_bundle_import(payload: BundleImportIn) -> Dict[str, Any]:
+        if not isinstance(payload.bundle, dict):
+            raise HTTPException(status_code=400, detail="bundle must be a JSON object")
+        if config.require_signature and payload.skip_signature:
+            raise HTTPException(
+                status_code=422,
+                detail="skip_signature is disabled when server require_signature policy is enabled",
+            )
+
+        try:
+            count = core.import_bundle_payload(
+                storage_root=config.storage_root,
+                manifest_path=config.manifest_path,
+                schemas_dir=config.schemas_dir,
+                bundle=payload.bundle,
+                skip_signature=payload.skip_signature,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Bundle import failed: {exc}") from exc
+
+        return {
+            "status": "imported",
+            "stored_objects": count,
+        }
+
+    @app.get("/stats")
+    def get_stats() -> Dict[str, Any]:
+        stats = core.compute_stats(config.storage_root, tools_out_dir=core.default_tools_out_dir())
+        stats["manifest"] = str(config.manifest_path)
+        stats["schemas_dir"] = str(config.schemas_dir)
+        return stats
+
+    @app.get("/registry/capabilities")
+    def get_registry_capabilities() -> Dict[str, Any]:
+        try:
+            payload = core.load_json(config.capabilities_path)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to load capabilities: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=500, detail="Capabilities file must be a JSON object")
+        payload["_file"] = str(config.capabilities_path)
+        payload["_require_signature"] = config.require_signature
+        return payload
+
     @app.get("/reputation/{agent_did}")
     def get_reputation(agent_did: str) -> Dict[str, Any]:
         # Stub computation based on available receipts; defaults to score 0.
@@ -230,10 +354,15 @@ def default_config() -> NodeConfig:
         manifest_path=Path(core.default_manifest_path()).expanduser().resolve(),
         schemas_dir=Path(core.default_schemas_dir()).expanduser().resolve(),
         storage_root=core.default_storage_root(),
+        capabilities_path=Path(core.default_capabilities_path()).expanduser().resolve(),
+        require_signature=False,
     )
 
 
 def create_default_app() -> FastAPI:
+    if HTTP_IMPORT_ERROR is not None:
+        # Keep module importable for CLI/help paths in environments without HTTP deps.
+        return None  # type: ignore[return-value]
     return create_app(default_config())
 
 
@@ -246,15 +375,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--manifest", default=str(core.default_manifest_path()))
     parser.add_argument("--schemas-dir", default=str(core.default_schemas_dir()))
+    parser.add_argument("--capabilities-file", default=str(core.default_capabilities_path()))
+    parser.add_argument("--require-signature", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if HTTP_IMPORT_ERROR is not None:
+        raise SystemExit(
+            f"HTTP dependencies are missing. Install reference-node/requirements.txt ({HTTP_IMPORT_ERROR})"
+        )
     config = NodeConfig(
         manifest_path=Path(args.manifest).expanduser().resolve(),
         schemas_dir=Path(args.schemas_dir).expanduser().resolve(),
         storage_root=core.default_storage_root(),
+        capabilities_path=Path(args.capabilities_file).expanduser().resolve(),
+        require_signature=bool(args.require_signature),
     )
     app = create_app(config)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
