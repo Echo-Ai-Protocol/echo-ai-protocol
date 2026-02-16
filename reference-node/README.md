@@ -66,6 +66,10 @@ Index file:
 - `reference-node/storage/index.json`
 - tracks IDs by type, deduplicated
 
+Capabilities descriptor:
+- `reference-node/capabilities.local.json`
+- exposed via `GET /registry/capabilities`
+
 ## Install
 
 ```bash
@@ -155,6 +159,15 @@ python3 reference-node/server.py \
   --schemas-dir schemas
 ```
 
+Strict signature policy mode:
+
+```bash
+python3 reference-node/server.py \
+  --host 127.0.0.1 \
+  --port 8080 \
+  --require-signature
+```
+
 ### Endpoints
 
 - `GET /health`
@@ -164,6 +177,7 @@ python3 reference-node/server.py \
 - `GET /bundles/export`
 - `POST /bundles/import`
 - `GET /stats`
+- `GET /registry/capabilities`
 - `GET /reputation/{agent_did}`
 
 ### curl Examples
@@ -222,6 +236,28 @@ Node stats:
 ```bash
 curl -s 'http://127.0.0.1:8080/stats'
 ```
+
+`/stats` includes object/index counters and latest simulator report metadata (when
+`tools/out/sim_report_*.json` exists).
+
+Node capabilities descriptor:
+
+```bash
+curl -s 'http://127.0.0.1:8080/registry/capabilities'
+```
+
+## Signature Policy
+
+CLI and HTTP default behavior validates non-empty `signature`.
+`--skip-signature` is available for dev/simulation flows.
+
+To force strict policy in CLI flows:
+
+```bash
+python3 reference-node/echo_node.py --require-signature validate --type eo --file reference-node/sample_data/eo.sample.json
+```
+
+When `--require-signature` is enabled, combining it with `--skip-signature` is rejected.
 
 Reputation stub:
 

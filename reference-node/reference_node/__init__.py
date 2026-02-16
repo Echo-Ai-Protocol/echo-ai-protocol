@@ -9,9 +9,11 @@ from .io_bundle import (
     infer_object_type,
 )
 from .io_utils import (
+    default_capabilities_path,
     default_manifest_path,
     default_schemas_dir,
     default_storage_root,
+    default_tools_out_dir,
     load_json,
     repo_root,
     safe_filename,
@@ -34,9 +36,11 @@ __all__ = [
     "SEARCH_OPS",
     "TYPE_DIR",
     "TYPE_TO_FAMILY",
+    "default_capabilities_path",
     "default_manifest_path",
     "default_schemas_dir",
     "default_storage_root",
+    "default_tools_out_dir",
     "empty_index",
     "export_bundle",
     "export_bundle_payload",

@@ -54,3 +54,30 @@ def test_bundle_payload_export_import(tmp_path: Path, manifest_path: Path, schem
 
     stats = core.compute_stats(dst_storage)
     assert stats["objects"]["counts"]["eo"] == 1
+
+
+def test_stats_include_latest_simulation_report(tmp_path: Path, sample_dir: Path) -> None:
+    storage_root = tmp_path / "storage"
+    tools_out = tmp_path / "tools_out"
+    tools_out.mkdir(parents=True, exist_ok=True)
+
+    eo = load_sample(sample_dir / "eo.sample.json")
+    core.store_object(storage_root=storage_root, object_type="eo", obj=eo)
+
+    report_path = tools_out / "sim_report_state.template.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "metrics": {"time_to_find_ticks": 2, "useful_hit_rate_top5": 0.8},
+                "reference_node": {"enabled": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    stats = core.compute_stats(storage_root, tools_out_dir=tools_out)
+    sim = stats["simulator"]
+    assert sim["found"] is True
+    assert sim["path"] == str(report_path)
+    assert isinstance(sim["report"], dict)
+    assert sim["report"]["metrics"]["time_to_find_ticks"] == 2

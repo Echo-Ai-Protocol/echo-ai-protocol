@@ -31,6 +31,14 @@ def default_storage_root() -> Path:
     return reference_node_dir() / "storage"
 
 
+def default_capabilities_path() -> Path:
+    return reference_node_dir() / "capabilities.local.json"
+
+
+def default_tools_out_dir() -> Path:
+    return repo_root() / "tools" / "out"
+
+
 def safe_filename(value: str) -> str:
     trimmed = value.strip() or "unknown"
     return "".join(ch if ch.isalnum() or ch in ("-", "_", ".") else "_" for ch in trimmed)

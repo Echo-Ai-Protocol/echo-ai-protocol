@@ -53,4 +53,10 @@ else
   fail "manifest.json or schemas/ missing"
 fi
 
+if [[ -f "$ROOT_DIR/reference-node/capabilities.local.json" ]]; then
+  pass "reference-node/capabilities.local.json found"
+else
+  fail "reference-node/capabilities.local.json missing"
+fi
+
 pass "preflight completed"

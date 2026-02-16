@@ -1,4 +1,4 @@
-.PHONY: preflight smoke simulate cli-help server test
+.PHONY: preflight smoke simulate cli-help server server-strict test
 
 preflight:
 	bash tools/preflight.sh
@@ -14,6 +14,9 @@ cli-help:
 
 server:
 	python3 -m uvicorn server:app --app-dir reference-node --host 127.0.0.1 --port 8080
+
+server-strict:
+	python3 reference-node/server.py --host 127.0.0.1 --port 8080 --require-signature
 
 test:
 	python3 -m pytest reference-node/tests

@@ -6,13 +6,33 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .index import index_path, load_index
+from .io_utils import default_tools_out_dir, load_json
 from .store import iter_stored_paths
 from .types import TYPE_DIR
 
 
-def compute_stats(storage_root: Path) -> Dict[str, Any]:
+def _latest_sim_report_payload(tools_out_dir: Path) -> Dict[str, Any]:
+    if not tools_out_dir.exists():
+        return {"found": False, "path": None, "report": None}
+
+    candidates = sorted(tools_out_dir.glob("sim_report_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not candidates:
+        return {"found": False, "path": None, "report": None}
+
+    latest = candidates[0]
+    try:
+        report = load_json(latest)
+    except Exception:
+        return {"found": True, "path": str(latest), "report": None}
+    if not isinstance(report, dict):
+        return {"found": True, "path": str(latest), "report": None}
+    return {"found": True, "path": str(latest), "report": report}
+
+
+def compute_stats(storage_root: Path, tools_out_dir: Path | None = None) -> Dict[str, Any]:
     idx = load_index(storage_root)
     idx_path = index_path(storage_root)
+    out_dir = tools_out_dir or default_tools_out_dir()
 
     stored_counts: Dict[str, int] = {}
     indexed_counts: Dict[str, int] = {}
@@ -45,4 +65,5 @@ def compute_stats(storage_root: Path) -> Dict[str, Any]:
             "counts": stored_counts,
             "total": sum(stored_counts.values()),
         },
+        "simulator": _latest_sim_report_payload(out_dir),
     }

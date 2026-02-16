@@ -16,6 +16,8 @@ Hybrid v1 combines:
 - `docs/SIMULATION_PLAN.md` — simulation model and metrics
 - `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
 - `docs/adr/ADR-0002-v1-2-launch-api-observability.md` — V1.2 launch API decision
+- `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 policy hardening decision
+- `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 strict policy + discovery
 
 ## Quickstart (CLI)
 
@@ -73,6 +75,7 @@ curl -s 'http://127.0.0.1:8080/search?type=eo&field=eo_id&op=contains&value=echo
 curl -s 'http://127.0.0.1:8080/objects/eo/echo.eo.http.v1'
 curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
 curl -s 'http://127.0.0.1:8080/stats'
+curl -s 'http://127.0.0.1:8080/registry/capabilities'
 ```
 
 ### Ranking v0 (`rank=true`)
@@ -130,5 +133,6 @@ make preflight
 make smoke
 make simulate
 make server
+make server-strict
 make test
 ```

@@ -25,6 +25,7 @@ HTTP_SEARCH_OUT="/tmp/echo-http-search.out"
 HTTP_OBJ_OUT="/tmp/echo-http-object.out"
 HTTP_STATS_OUT="/tmp/echo-http-stats.out"
 HTTP_BUNDLE_OUT="/tmp/echo-http-bundle.out"
+HTTP_CAPS_OUT="/tmp/echo-http-capabilities.out"
 HTTP_BUNDLE_IMPORT_PAYLOAD=""
 
 TYPES=(eo trace request rr aao referral seedupdate)
@@ -48,7 +49,8 @@ cleanup() {
   if [[ -n "${HTTP_BUNDLE_IMPORT_PAYLOAD:-}" ]]; then
     rm -f "$HTTP_BUNDLE_IMPORT_PAYLOAD" || true
   fi
-  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" || true
+  rm -f "$HTTP_POST_OUT" "$HTTP_SEARCH_OUT" "$HTTP_OBJ_OUT" "$HTTP_STATS_OUT" "$HTTP_BUNDLE_OUT" "$HTTP_CAPS_OUT" || true
+  rm -f /tmp/echo-sig-guard.out || true
 }
 trap cleanup EXIT
 
@@ -131,6 +133,16 @@ run_cli_smoke() {
       return 1
     fi
     print_pass "validate --skip-signature $t"
+
+    if [[ "$t" == "eo" ]]; then
+      echo "[SMOKE] signature policy guard (eo)"
+      if run_node validate --require-signature --skip-signature --type eo --file "$f" >/tmp/echo-sig-guard.out 2>&1; then
+        cat /tmp/echo-sig-guard.out
+        print_fail "expected require-signature to reject --skip-signature"
+        return 1
+      fi
+      print_pass "signature policy guard eo"
+    fi
 
     echo "[SMOKE] store ($t)"
     if ! out="$(run_node store --type "$t" --file "$f" 2>&1)"; then
@@ -417,6 +429,29 @@ PY
     return 1
   fi
   print_pass "HTTP GET /stats"
+
+  echo "[SMOKE] HTTP GET /registry/capabilities"
+  http_code="$(curl -sS -o "$HTTP_CAPS_OUT" -w '%{http_code}' \
+    "http://$SERVER_HOST:$SERVER_PORT/registry/capabilities")"
+  if [[ "$http_code" != "200" ]]; then
+    cat "$HTTP_CAPS_OUT"
+    print_fail "HTTP GET /registry/capabilities failed with status $http_code"
+    return 1
+  fi
+  if ! python3 - "$HTTP_CAPS_OUT" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+if payload.get("features", {}).get("http") is not True:
+    raise SystemExit(1)
+PY
+  then
+    cat "$HTTP_CAPS_OUT"
+    print_fail "HTTP GET /registry/capabilities returned unexpected payload"
+    return 1
+  fi
+  print_pass "HTTP GET /registry/capabilities"
 
   cleanup
   return 0

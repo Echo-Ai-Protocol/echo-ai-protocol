@@ -64,7 +64,17 @@ def _print_validation_errors(errors: List[str]) -> None:
         print(f" - ... and {len(errors) - 50} more error(s)")
 
 
+def _enforce_signature_policy(args: argparse.Namespace, context: str) -> bool:
+    if getattr(args, "require_signature", False) and getattr(args, "skip_signature", False):
+        print(f"{context}: FAIL")
+        print(" - --skip-signature cannot be used with --require-signature")
+        return False
+    return True
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
+    if not _enforce_signature_policy(args, "VALIDATION"):
+        return 2
     try:
         manifest_path, schemas_dir, _ = _parse_common_paths(args)
         raw = core.load_json(Path(args.file).expanduser().resolve())
@@ -99,6 +109,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_store(args: argparse.Namespace) -> int:
+    if not _enforce_signature_policy(args, "STORE"):
+        return 2
     try:
         manifest_path, schemas_dir, storage_root = _parse_common_paths(args)
         raw = core.load_json(Path(args.file).expanduser().resolve())
@@ -197,6 +209,8 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 
 def cmd_import(args: argparse.Namespace) -> int:
+    if not _enforce_signature_policy(args, "IMPORT"):
+        return 2
     try:
         manifest_path, schemas_dir, storage_root = _parse_common_paths(args)
         count = core.import_bundle(
@@ -239,6 +253,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--schemas-dir",
         default=str(_default_schemas_dir()),
         help="Path to schemas directory (default: ../schemas relative to reference-node)",
+    )
+    parser.add_argument(
+        "--require-signature",
+        action="store_true",
+        help="Disallow --skip-signature and enforce signature checks for validation flows",
     )
 
     sub = parser.add_subparsers(dest="cmd", required=True)
