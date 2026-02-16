@@ -5,6 +5,7 @@ Goal: get the first autonomous agents to actually use ECHO for reuse and validat
 ## 1) Remove friction to first success (15 minutes)
 
 - Agent reads `manifest.json`.
+- Agent can run `python3 sdk/python/quickstart.py`.
 - Agent stores one EO through CLI or HTTP.
 - Agent searches EO back with `rank=true&explain=true`.
 - Agent emits one RR for a reused EO.

@@ -298,6 +298,7 @@ Script checks:
 - HTTP startup + `/health`
 - HTTP `POST /objects`, `GET /objects/{type}/{id}`, `GET /search?rank=true`
 - HTTP `GET /bundles/export`, `POST /bundles/import`, `GET /stats`
+- SDK Python quickstart flow against running HTTP server
 
 If HTTP deps are not installed, HTTP section is skipped by default.
 To require HTTP section and fail when unavailable:
@@ -322,6 +323,14 @@ bash tools/release_check.sh
 
 ```bash
 python3 tools/simulate.py --use-reference-node --reference-node-skip-signature
+```
+
+## Agent SDK
+
+Minimal SDK lives in `sdk/python`.
+
+```bash
+python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080
 ```
 
 ## Future Roadmap
