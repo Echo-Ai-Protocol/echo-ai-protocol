@@ -135,4 +135,5 @@ make simulate
 make server
 make server-strict
 make test
+make release-check
 ```

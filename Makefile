@@ -1,4 +1,4 @@
-.PHONY: preflight smoke simulate cli-help server server-strict test
+.PHONY: preflight smoke simulate cli-help server server-strict test release-check
 
 preflight:
 	bash tools/preflight.sh
@@ -20,3 +20,6 @@ server-strict:
 
 test:
 	python3 -m pytest reference-node/tests
+
+release-check:
+	bash tools/release_check.sh

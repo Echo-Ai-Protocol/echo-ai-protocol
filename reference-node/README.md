@@ -299,6 +299,12 @@ SMOKE_REQUIRE_HTTP=1 ./reference-node/run_smoke_tests.sh
 pytest reference-node/tests
 ```
 
+## Release Check
+
+```bash
+bash tools/release_check.sh
+```
+
 ## Simulation Through Reference Node
 
 ```bash
