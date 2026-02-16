@@ -19,4 +19,5 @@ Start with `manifest.json`.
 If a reference node is running, first useful calls:
 - `GET /health`
 - `GET /registry/capabilities`
+- `GET /registry/bootstrap`
 - `GET /search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true`

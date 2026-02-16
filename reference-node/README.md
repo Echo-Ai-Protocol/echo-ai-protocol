@@ -178,6 +178,7 @@ python3 reference-node/server.py \
 - `POST /bundles/import`
 - `GET /stats`
 - `GET /registry/capabilities`
+- `GET /registry/bootstrap`
 - `GET /reputation/{agent_did}`
 
 ### curl Examples
@@ -247,11 +248,13 @@ If available, stats also includes normalized simulator metrics contract:
 - `missed_promotion_rate_pct`
 - `spam_survival_rate_pct`
 Use `history=<N>` to include recent simulator trend rows in `simulator_history`.
+`simulator_trend` summarizes latest-vs-previous deltas and improvement direction.
 
 Node capabilities descriptor:
 
 ```bash
 curl -s 'http://127.0.0.1:8080/registry/capabilities'
+curl -s 'http://127.0.0.1:8080/registry/bootstrap'
 ```
 
 ## Signature Policy

@@ -92,6 +92,8 @@ def test_stats_include_latest_simulation_report(tmp_path: Path, sample_dir: Path
     assert sim["metrics_v1"]["useful_hit_rate_top5_pct"] == 80.0
     assert sim["metrics_v1"]["false_promotion_rate_pct"] == 4.0
     assert isinstance(sim["evaluation_v1"]["overall_pass"], bool)
+    trend = stats["simulator_trend"]
+    assert trend["has_baseline"] is False
 
 
 def test_stats_include_simulation_history(tmp_path: Path) -> None:
@@ -139,3 +141,8 @@ def test_stats_include_simulation_history(tmp_path: Path) -> None:
     assert history[0]["path"] == str(newer)
     assert history[1]["path"] == str(older)
     assert history[0]["metrics_v1"]["time_to_find_ticks"] == 10.0
+    trend = stats["simulator_trend"]
+    assert trend["has_baseline"] is True
+    assert trend["delta"]["time_to_find_ticks"] == -10.0
+    assert trend["direction"]["time_to_find_ticks"] == "improved"
+    assert trend["direction"]["useful_hit_rate_top5_pct"] == "improved"

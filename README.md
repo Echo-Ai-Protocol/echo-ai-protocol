@@ -20,6 +20,7 @@ Hybrid v1 combines:
 - `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 policy hardening decision
 - `docs/adr/ADR-0004-v1-4-simulator-metrics-contract.md` — V1.4 simulator metrics contract
 - `docs/adr/ADR-0005-v1-5-explainable-search-and-metrics-history.md` — V1.5 explainable ranking + trend stats
+- `docs/adr/ADR-0006-v1-6-bootstrap-and-metric-trends.md` — V1.6 agent bootstrap + simulator trend deltas
 
 ## Quickstart (CLI)
 
@@ -78,6 +79,7 @@ curl -s 'http://127.0.0.1:8080/objects/eo/echo.eo.http.v1'
 curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
 curl -s 'http://127.0.0.1:8080/stats?history=10'
 curl -s 'http://127.0.0.1:8080/registry/capabilities'
+curl -s 'http://127.0.0.1:8080/registry/bootstrap'
 ```
 
 ### Ranking v0 (`rank=true`)

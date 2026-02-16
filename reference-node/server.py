@@ -9,6 +9,7 @@ Endpoints:
 - POST /bundles/import
 - GET /stats
 - GET /registry/capabilities
+- GET /registry/bootstrap
 - GET /health
 - GET /reputation/{agent_did}
 """
@@ -186,6 +187,52 @@ def _compute_reputation(storage_root: Path, agent_did: str) -> Dict[str, Any]:
         "score": round(score, 6),
         "receipts_total": total,
         "success_receipts": success,
+    }
+
+
+def _bootstrap_payload(config: NodeConfig) -> Dict[str, Any]:
+    object_types = sorted(core.TYPE_TO_FAMILY.keys())
+    return {
+        "bootstrap_version": "echo.node.bootstrap.v1",
+        "service": "echo-reference-node",
+        "protocol_version": "ECHO/1.0",
+        "manifest_path": str(config.manifest_path),
+        "schemas_dir": str(config.schemas_dir),
+        "object_types": object_types,
+        "search_ops": sorted(core.SEARCH_OPS),
+        "ranking": {
+            "supports_rank": True,
+            "supports_explain": True,
+            "scope": "eo",
+        },
+        "endpoints": {
+            "health": {"method": "GET", "path": "/health"},
+            "store_object": {"method": "POST", "path": "/objects"},
+            "get_object": {"method": "GET", "path": "/objects/{type}/{object_id}"},
+            "search": {"method": "GET", "path": "/search"},
+            "stats": {"method": "GET", "path": "/stats"},
+            "capabilities": {"method": "GET", "path": "/registry/capabilities"},
+            "bootstrap": {"method": "GET", "path": "/registry/bootstrap"},
+            "bundle_export": {"method": "GET", "path": "/bundles/export"},
+            "bundle_import": {"method": "POST", "path": "/bundles/import"},
+            "reputation": {"method": "GET", "path": "/reputation/{agent_did}"},
+        },
+        "examples": {
+            "store": {
+                "type": "eo",
+                "required_top_level": [
+                    "eo_id",
+                    "problem_embedding",
+                    "constraints_embedding",
+                    "solution_embedding",
+                    "created_at",
+                    "protocol",
+                    "signature",
+                ],
+            },
+            "search_ranked": "/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true",
+            "stats_with_history": "/stats?history=10",
+        },
     }
 
 
@@ -373,6 +420,10 @@ def create_app(config: NodeConfig) -> FastAPI:
         payload["_file"] = str(config.capabilities_path)
         payload["_require_signature"] = config.require_signature
         return payload
+
+    @app.get("/registry/bootstrap")
+    def get_registry_bootstrap() -> Dict[str, Any]:
+        return _bootstrap_payload(config)
 
     @app.get("/reputation/{agent_did}")
     def get_reputation(agent_did: str) -> Dict[str, Any]:

@@ -25,6 +25,15 @@ SIM_METRIC_TARGETS: Dict[str, float] = {
     "max_spam_survival_rate_pct": 30.0,
 }
 
+# Preferred optimization direction for each canonical metric.
+SIM_METRIC_GOALS: Dict[str, str] = {
+    "time_to_find_ticks": "min",
+    "useful_hit_rate_top5_pct": "max",
+    "false_promotion_rate_pct": "min",
+    "missed_promotion_rate_pct": "min",
+    "spam_survival_rate_pct": "min",
+}
+
 
 def _as_float(value: Any) -> Optional[float]:
     if isinstance(value, bool):
@@ -111,3 +120,22 @@ def evaluate_sim_metrics_v1(metrics: Dict[str, float]) -> Dict[str, Any]:
         "checks": checks,
     }
 
+
+def trend_sim_metrics_v1(latest: Dict[str, float], previous: Dict[str, float]) -> Dict[str, Any]:
+    deltas: Dict[str, float] = {}
+    direction: Dict[str, str] = {}
+
+    for metric, goal in SIM_METRIC_GOALS.items():
+        if metric not in latest or metric not in previous:
+            continue
+        delta = round(float(latest[metric]) - float(previous[metric]), 4)
+        deltas[metric] = delta
+
+        if abs(delta) < 1e-12:
+            direction[metric] = "same"
+        elif goal == "max":
+            direction[metric] = "improved" if delta > 0 else "regressed"
+        else:
+            direction[metric] = "improved" if delta < 0 else "regressed"
+
+    return {"delta": deltas, "direction": direction}

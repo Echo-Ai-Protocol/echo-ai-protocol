@@ -16,6 +16,7 @@ Success metric:
 
 - Keep `.well-known/echo-ai/manifest.json` available.
 - Expose `GET /registry/capabilities`.
+- Expose `GET /registry/bootstrap`.
 - Keep sample payloads in `reference-node/sample_data/`.
 
 Success metric:
@@ -49,4 +50,3 @@ Success metric:
 
 Success metric:
 - contributors can predict behavior across versions (low integration breakage).
-
