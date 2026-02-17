@@ -1,0 +1,32 @@
+name: release-check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r reference-node/requirements.txt
+          pip install -r reference-node/requirements-dev.txt
+
+      - name: Run release check (HTTP + pytest required)
+        env:
+          SMOKE_REQUIRE_HTTP: "1"
+          RELEASE_REQUIRE_PYTEST: "1"
+        run: |
+          bash tools/release_check.sh

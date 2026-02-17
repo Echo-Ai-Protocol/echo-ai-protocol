@@ -277,6 +277,36 @@ def search_eo_via_reference_node(repo_root: str, eo_id: str) -> Tuple[bool, int,
     return proc.returncode == 0, count, output
 
 
+def probe_reference_node_search(
+    repo_root: str,
+    candidate_ids: List[str],
+    attempts: int = 3,
+    delay_seconds: float = 0.15,
+) -> Tuple[Optional[str], bool, str]:
+    """Probe one of candidate EO ids with retries; return (id, found, last_output)."""
+    # Prefer latest ids: they are less likely to be affected by prior-run artifacts.
+    unique_candidates: List[str] = []
+    seen = set()
+    for eo_id in candidate_ids:
+        if eo_id in seen:
+            continue
+        seen.add(eo_id)
+        unique_candidates.append(eo_id)
+
+    last_output = ""
+    for _ in range(max(1, attempts)):
+        for eo_id in unique_candidates:
+            ok, count, out = search_eo_via_reference_node(repo_root=repo_root, eo_id=eo_id)
+            last_output = out
+            if ok and count > 0:
+                return eo_id, True, out
+        time.sleep(max(0.0, delay_seconds))
+
+    if unique_candidates:
+        return unique_candidates[0], False, last_output
+    return None, False, last_output
+
+
 # -----------------------------
 # Simulation core
 # -----------------------------
@@ -320,6 +350,8 @@ def simulate(
         "first_error": None,
         "search_probe_id": None,
         "search_probe_found": None,
+        "search_probe_attempts": 0,
+        "search_probe_candidates": 0,
     }
     stored_ids: List[str] = []
 
@@ -521,11 +553,22 @@ def simulate(
 
     if use_reference_node:
         if repo_root and stored_ids:
-            probe_id = stored_ids[0]
-            ok, count, out = search_eo_via_reference_node(repo_root=repo_root, eo_id=probe_id)
+            probe_candidates: List[str] = []
+            probe_candidates.append(stored_ids[-1])  # latest write first
+            probe_candidates.append(stored_ids[len(stored_ids) // 2])
+            probe_candidates.append(stored_ids[0])   # oldest write as fallback
+
+            node_stats["search_probe_attempts"] = 3
+            node_stats["search_probe_candidates"] = len(probe_candidates)
+            probe_id, found, out = probe_reference_node_search(
+                repo_root=repo_root,
+                candidate_ids=probe_candidates,
+                attempts=int(node_stats["search_probe_attempts"]),
+                delay_seconds=0.15,
+            )
             node_stats["search_probe_id"] = probe_id
-            node_stats["search_probe_found"] = bool(ok and count > 0)
-            if (not ok or count <= 0) and node_stats["first_error"] is None:
+            node_stats["search_probe_found"] = bool(found)
+            if (not found) and node_stats["first_error"] is None:
                 node_stats["first_error"] = out[:500] if out else "reference-node search probe failed"
         report["reference_node"] = node_stats
 

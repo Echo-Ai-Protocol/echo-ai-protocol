@@ -15,6 +15,7 @@ Hybrid v1 combines:
 - `docs/REFERENCE_NODE_API.md` — minimal API surface
 - `docs/SIMULATION_PLAN.md` — simulation model and metrics
 - `docs/FIRST_AI_TRACTION.md` — immediate adoption plan for first external agents
+- `docs/ADOPTION_EXECUTION_BOARD.md` — execution board for first 3 external integrations
 - `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
 - `docs/adr/ADR-0002-v1-2-launch-api-observability.md` — V1.2 launch API decision
 - `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 policy hardening decision
@@ -22,6 +23,7 @@ Hybrid v1 combines:
 - `docs/adr/ADR-0005-v1-5-explainable-search-and-metrics-history.md` — V1.5 explainable ranking + trend stats
 - `docs/adr/ADR-0006-v1-6-bootstrap-and-metric-trends.md` — V1.6 agent bootstrap + simulator trend deltas
 - `docs/adr/ADR-0007-v1-7-python-sdk-quickstart.md` — V1.7 minimal agent SDK quickstart
+- `docs/adr/ADR-0008-v1-8-stabilization-and-adoption-gates.md` — V1.8 CI gates + simulator stability + reputation v1
 
 ## Quickstart (CLI)
 
@@ -81,6 +83,7 @@ curl -s 'http://127.0.0.1:8080/bundles/export?type=eo'
 curl -s 'http://127.0.0.1:8080/stats?history=10'
 curl -s 'http://127.0.0.1:8080/registry/capabilities'
 curl -s 'http://127.0.0.1:8080/registry/bootstrap'
+curl -s 'http://127.0.0.1:8080/reputation/did:echo:agent.sample.2'
 ```
 
 ## Agent SDK Quickstart (Python)
@@ -98,6 +101,11 @@ SDK docs:
 ```bash
 cat sdk/python/README.md
 ```
+
+SDK v1.1 adds:
+- retry/backoff controls in `EchoClient`
+- `wait_for_health()`
+- convenience helpers: `store_eo()`, `store_rr()`, `search_ranked_eo()`
 
 ### Ranking v0 (`rank=true`)
 

@@ -36,9 +36,14 @@ Success metric:
 
 ## 4) Starter integrations to target first
 
-- Open-source agent frameworks with Python subprocess/HTTP support.
-- Internal automation agents that already run retrieval workflows.
-- Research assistants that need repeatable traces + evaluation artifacts.
+Lane 1:
+- Python HTTP task agent (direct `sdk/python` usage).
+
+Lane 2:
+- Research assistant agent with explicit reuse + RR publishing loop.
+
+Lane 3:
+- Internal automation bot that runs scheduled EO publication and search checks.
 
 Success metric:
 - 3 repeat integrations (not one-off demos).
@@ -48,6 +53,7 @@ Success metric:
 - Weekly changelog with one concrete improvement and one metric delta.
 - Public "known issues" for transparency.
 - Stable contracts first; feature volume second.
+- Maintain `docs/ADOPTION_EXECUTION_BOARD.md` and review weekly.
 
 Success metric:
 - contributors can predict behavior across versions (low integration breakage).

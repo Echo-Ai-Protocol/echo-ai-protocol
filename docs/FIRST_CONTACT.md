@@ -24,3 +24,4 @@ If a reference node is running, first useful calls:
 
 Python quickstart client:
 - `python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080`
+- SDK supports retry/backoff and `wait_for_health()` for unstable startup windows.
