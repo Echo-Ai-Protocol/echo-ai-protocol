@@ -39,6 +39,11 @@ required = {
 missing = sorted(k for k in required if k not in metrics)
 if missing:
     raise SystemExit("metrics contract missing keys: " + ", ".join(missing))
+
+rn = payload.get("reference_node", {})
+if rn.get("enabled") is True and rn.get("search_probe_found") is not True:
+    raise SystemExit("reference-node search probe failed in simulator report")
+
 print("metrics contract ok")
 PY
 
@@ -48,8 +53,12 @@ importlib.import_module('pytest')
 PY
 then
   step "pytest"
-  python3 -m pytest reference-node/tests
+  python3 -m pytest reference-node/tests sdk/python/tests
 else
+  if [[ "${RELEASE_REQUIRE_PYTEST:-0}" == "1" ]]; then
+    echo "[RELEASE-CHECK] pytest required but not installed" >&2
+    exit 1
+  fi
   step "pytest skipped (not installed)"
 fi
 

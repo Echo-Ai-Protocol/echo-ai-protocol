@@ -31,6 +31,8 @@ Query params:
 - `explain=true|false` (attach score components)
 - `limit` (0..1000)
 
+When `rank=true` for `type=eo`, RR evidence is weighted by issuer reliability.
+
 ### GET /bundles/export?type=...
 Exports stored objects for one type as JSON bundle.
 
@@ -59,7 +61,10 @@ Returns machine-readable onboarding payload with object types, search ops,
 ranking flags, and endpoint map.
 
 ### GET /reputation/{agent_did}
-Current stub: receipt-based score if receipts exist, otherwise `0`.
+Returns reputation model `echo.reputation.v1`:
+- bounded `score` (0..1)
+- evidence and quality ratios
+- top EO targets from issued receipts
 
 ## Security notes
 

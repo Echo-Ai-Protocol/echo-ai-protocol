@@ -27,21 +27,19 @@ If running server in relaxed signature mode:
 python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080 --skip-signature
 ```
 
+With explicit retry/timeout tuning:
+
+```bash
+python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080 --retries 5 --timeout-seconds 8
+```
+
 ## Example usage in your own agent
 
 ```python
 from echo_sdk import EchoClient
 
 client = EchoClient("http://127.0.0.1:8080")
-health = client.health()
+health = client.wait_for_health()
 bootstrap = client.bootstrap()
-result = client.search(
-    object_type="eo",
-    field="eo_id",
-    op="contains",
-    value="echo.eo",
-    rank=True,
-    explain=True,
-)
+result = client.search_ranked_eo("echo.eo", explain=True)
 ```
-

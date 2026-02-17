@@ -32,6 +32,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ECHO SDK quickstart flow")
     parser.add_argument("--base-url", default="http://127.0.0.1:8080")
     parser.add_argument("--skip-signature", action="store_true")
+    parser.add_argument("--retries", type=int, default=3, help="HTTP retries per request")
+    parser.add_argument("--timeout-seconds", type=float, default=10.0)
     parser.add_argument(
         "--sample-dir",
         default=str(Path(__file__).resolve().parents[2] / "reference-node" / "sample_data"),
@@ -45,10 +47,14 @@ def main() -> int:
     eo_sample = read_json(sample_dir / "eo.sample.json")
     rr_sample = read_json(sample_dir / "rr.sample.json")
 
-    client = EchoClient(base_url=args.base_url)
+    client = EchoClient(
+        base_url=args.base_url,
+        timeout_seconds=args.timeout_seconds,
+        max_retries=args.retries,
+    )
 
     try:
-        health = client.health()
+        health = client.wait_for_health(max_attempts=20, delay_seconds=0.2)
     except EchoApiError as exc:
         print(f"[FAIL] health check failed: {exc}")
         if exc.body is not None:
@@ -60,19 +66,11 @@ def main() -> int:
     print("[OK] /registry/bootstrap", bootstrap.get("bootstrap_version"))
 
     eo = with_unique_id(eo_sample, "eo_id", "echo.eo.sdk.quickstart")
-    stored_eo = client.store_object("eo", eo, skip_signature=args.skip_signature)
+    stored_eo = client.store_eo(eo, skip_signature=args.skip_signature)
     eo_id = eo["eo_id"]
     print("[OK] stored eo", stored_eo.get("id"))
 
-    search = client.search(
-        object_type="eo",
-        field="eo_id",
-        op="contains",
-        value=eo_id,
-        rank=True,
-        explain=True,
-        limit=5,
-    )
+    search = client.search_ranked_eo(eo_id_contains=eo_id, limit=5, explain=True)
     count = int(search.get("count", 0))
     if count < 1:
         print("[FAIL] expected at least 1 search hit for stored EO")
@@ -81,7 +79,7 @@ def main() -> int:
 
     rr = with_unique_id(rr_sample, "rr_id", "echo.rr.sdk.quickstart")
     rr["target_eo_id"] = eo_id
-    stored_rr = client.store_object("rr", rr, skip_signature=args.skip_signature)
+    stored_rr = client.store_rr(rr, skip_signature=args.skip_signature)
     print("[OK] stored rr", stored_rr.get("id"))
 
     reputation = client.reputation(rr.get("issuer_agent_did", "did:echo:unknown"))
@@ -96,4 +94,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

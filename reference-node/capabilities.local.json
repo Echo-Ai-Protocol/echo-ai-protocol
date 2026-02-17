@@ -11,6 +11,8 @@
     "bundle_import_export": true,
     "trust_weighted_ranking_v0": true,
     "search_explain": true,
+    "reputation_v1": true,
+    "sdk_python_quickstart": true,
     "stats_history": true,
     "stats_trend": true,
     "registry_bootstrap": true,

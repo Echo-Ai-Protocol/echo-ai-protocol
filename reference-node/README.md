@@ -255,6 +255,7 @@ Node capabilities descriptor:
 ```bash
 curl -s 'http://127.0.0.1:8080/registry/capabilities'
 curl -s 'http://127.0.0.1:8080/registry/bootstrap'
+curl -s 'http://127.0.0.1:8080/reputation/did:echo:agent.sample.2'
 ```
 
 ## Signature Policy
@@ -270,18 +271,25 @@ python3 reference-node/echo_node.py --require-signature validate --type eo --fil
 
 When `--require-signature` is enabled, combining it with `--skip-signature` is rejected.
 
-Reputation stub:
+Reputation v1:
 
 ```bash
 curl -s http://127.0.0.1:8080/reputation/did:echo:agent.sample.2
 ```
+
+Reputation payload includes:
+- `score` in range `[0..1]`
+- `evidence_factor`
+- `success_ratio` and `contradiction_ratio`
+- `avg_effectiveness_score`
+- `top_targets` (most frequent EO targets for issued receipts)
 
 ## Trust-weighted Ranking v0
 
 `GET /search?...&rank=true` enables deterministic ranking for `type=eo`:
 - higher `confidence_score` ranks higher
 - EO with `outcome_metrics` gets a bonus
-- `SUCCESS` receipts from stored `rr` objects increase rank
+- `SUCCESS` receipts from stored `rr` objects increase rank (issuer-reliability weighted)
 
 `explain=true` adds per-result `score_explain` payload to make ranking decisions transparent.
 

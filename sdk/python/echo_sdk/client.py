@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -21,9 +22,17 @@ class EchoApiError(RuntimeError):
 class EchoClient:
     """Thin HTTP client for reference-node endpoints."""
 
-    def __init__(self, base_url: str = "http://127.0.0.1:8080", timeout_seconds: float = 10.0):
+    def __init__(
+        self,
+        base_url: str = "http://127.0.0.1:8080",
+        timeout_seconds: float = 10.0,
+        max_retries: int = 2,
+        retry_backoff_seconds: float = 0.2,
+    ):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.max_retries = max(0, int(max_retries))
+        self.retry_backoff_seconds = max(0.0, float(retry_backoff_seconds))
 
     def _url(self, path: str, query: Optional[Dict[str, Any]] = None) -> str:
         normalized = path if path.startswith("/") else f"/{path}"
@@ -42,6 +51,9 @@ class EchoClient:
         except json.JSONDecodeError:
             return {"raw": text}
 
+    def _should_retry_http(self, status_code: int) -> bool:
+        return status_code >= 500
+
     def _request(
         self,
         method: str,
@@ -58,24 +70,57 @@ class EchoClient:
 
         request = urllib.request.Request(url=url, method=method, headers=headers, data=data)
 
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                parsed = self._decode_body(response.read())
-                if not isinstance(parsed, dict):
-                    raise EchoApiError("Expected JSON object in response", status_code=response.status, body=parsed)
-                return parsed
-        except urllib.error.HTTPError as exc:
-            body = self._decode_body(exc.read() if exc.fp is not None else b"")
-            raise EchoApiError(
-                f"HTTP {exc.code} calling {path}",
-                status_code=exc.code,
-                body=body,
-            ) from exc
-        except urllib.error.URLError as exc:
-            raise EchoApiError(f"Network error calling {path}: {exc}") from exc
+        attempts = self.max_retries + 1
+        last_error: Optional[EchoApiError] = None
+
+        for attempt in range(1, attempts + 1):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+                    parsed = self._decode_body(response.read())
+                    if not isinstance(parsed, dict):
+                        raise EchoApiError(
+                            "Expected JSON object in response",
+                            status_code=response.status,
+                            body=parsed,
+                        )
+                    return parsed
+            except urllib.error.HTTPError as exc:
+                body = self._decode_body(exc.read() if exc.fp is not None else b"")
+                err = EchoApiError(
+                    f"HTTP {exc.code} calling {path}",
+                    status_code=exc.code,
+                    body=body,
+                )
+                should_retry = self._should_retry_http(exc.code) and attempt < attempts
+                if not should_retry:
+                    raise err from exc
+                last_error = err
+            except urllib.error.URLError as exc:
+                err = EchoApiError(f"Network error calling {path}: {exc}")
+                if attempt >= attempts:
+                    raise err from exc
+                last_error = err
+
+            time.sleep(self.retry_backoff_seconds * attempt)
+
+        if last_error is not None:
+            raise last_error
+        raise EchoApiError(f"Request failed calling {path}")
 
     def health(self) -> Dict[str, Any]:
         return self._request("GET", "/health")
+
+    def wait_for_health(self, max_attempts: int = 20, delay_seconds: float = 0.2) -> Dict[str, Any]:
+        last_error: Optional[EchoApiError] = None
+        for _ in range(max(1, int(max_attempts))):
+            try:
+                return self.health()
+            except EchoApiError as exc:
+                last_error = exc
+                time.sleep(max(0.0, delay_seconds))
+        if last_error is not None:
+            raise last_error
+        raise EchoApiError("health check failed")
 
     def bootstrap(self) -> Dict[str, Any]:
         return self._request("GET", "/registry/bootstrap")
@@ -100,6 +145,12 @@ class EchoClient:
                 "skip_signature": bool(skip_signature),
             },
         )
+
+    def store_eo(self, eo: Dict[str, Any], skip_signature: bool = False) -> Dict[str, Any]:
+        return self.store_object("eo", eo, skip_signature=skip_signature)
+
+    def store_rr(self, rr: Dict[str, Any], skip_signature: bool = False) -> Dict[str, Any]:
+        return self.store_object("rr", rr, skip_signature=skip_signature)
 
     def get_object(self, object_type: str, object_id: str) -> Dict[str, Any]:
         encoded = urllib.parse.quote(object_id, safe="")
@@ -129,6 +180,17 @@ class EchoClient:
             },
         )
 
+    def search_ranked_eo(self, eo_id_contains: str, limit: int = 10, explain: bool = True) -> Dict[str, Any]:
+        return self.search(
+            object_type="eo",
+            field="eo_id",
+            op="contains",
+            value=eo_id_contains,
+            rank=True,
+            explain=explain,
+            limit=limit,
+        )
+
     def export_bundle(self, object_type: str) -> Dict[str, Any]:
         return self._request("GET", "/bundles/export", query={"type": object_type})
 
@@ -138,4 +200,3 @@ class EchoClient:
             "/bundles/import",
             json_body={"bundle": bundle, "skip_signature": bool(skip_signature)},
         )
-
