@@ -78,10 +78,15 @@ sample_file_for_type() {
 
 make_temp_json() {
   local prefix="$1"
-  local tmp
-  tmp="$(mktemp -t "$prefix")"
-  mv "$tmp" "${tmp}.json"
-  echo "${tmp}.json"
+  python3 - "$prefix" <<'PY'
+import os
+import sys
+import tempfile
+
+fd, path = tempfile.mkstemp(prefix=f"{sys.argv[1]}.", suffix=".json")
+os.close(fd)
+print(path)
+PY
 }
 
 run_node() {

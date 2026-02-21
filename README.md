@@ -16,6 +16,10 @@ Hybrid v1 combines:
 - `docs/SIMULATION_PLAN.md` — simulation model and metrics
 - `docs/FIRST_AI_TRACTION.md` — immediate adoption plan for first external agents
 - `docs/ADOPTION_EXECUTION_BOARD.md` — execution board for first 3 external integrations
+- `docs/EXTERNAL_AI_ATTRACTION_PLAYBOOK.md` — detailed attraction/onboarding flow for external AI pilots
+- `docs/EXTERNAL_AI_COMPATIBILITY_MATRIX.md` — public compatibility tracking for external integrations
+- `docs/ZERO_TOUCH_ONBOARDING.md` — self-serve onboarding and auto-gate flow
+- `docs/EXTERNAL_AI_CANDIDATE_PIPELINE.md` — sourcing and scoring pipeline for external AI candidates
 - `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
 - `docs/adr/ADR-0002-v1-2-launch-api-observability.md` — V1.2 launch API decision
 - `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 policy hardening decision
@@ -180,4 +184,10 @@ make server
 make server-strict
 make test
 make release-check
+make pilot-feedback-lint FEEDBACK_FILE=examples/integration/pilot_feedback.template.json
+make zero-touch-gate INTEGRATION_ID=ext-ai-001 AGENT_NAME="External Agent 1" LANE=code RUNS=3 BASE_URL=http://127.0.0.1:8080
+make candidate-shortlist CANDIDATE_INPUT=examples/integration/candidate_pipeline.template.csv
+make sync-compatibility-matrix REPORT_FILE=tools/out/zero_touch_ext-ai-001.json
+make outreach-message INTEGRATION_ID=ext-ai-001 AGENT_NAME="Candidate Agent" LANE=code
+make external-kpi-summary
 ```

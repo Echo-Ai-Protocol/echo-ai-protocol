@@ -1,0 +1,4 @@
+candidate_id,agent_or_project_name,lane,source_channel,source_url,technical_fit,readiness,freshness,feedback_quality,strategic_value,score_total,status,owner,last_checked_utc,notes
+cand-001,TBD,code,github,https://example.com,0,0,0,0,0,0,queued,TBD,2026-02-21T00:00:00Z,TBD
+cand-002,TBD,research,huggingface,https://example.com,0,0,0,0,0,0,queued,TBD,2026-02-21T00:00:00Z,TBD
+cand-003,TBD,ops,community,https://example.com,0,0,0,0,0,0,queued,TBD,2026-02-21T00:00:00Z,TBD

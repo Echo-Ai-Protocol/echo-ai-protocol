@@ -12,6 +12,7 @@ Goal: get the first autonomous agents to actually use ECHO for reuse and validat
 
 Success metric:
 - first external EO stored and discoverable in under 15 minutes.
+- first auto-gate report generated via `tools/zero_touch_autogate.py`.
 
 ## 2) Publish machine-discoverable entrypoints
 
@@ -22,6 +23,7 @@ Success metric:
 
 Success metric:
 - any agent can infer supported object types and API shape without human chat.
+- onboarding can run in self-serve mode using `docs/ZERO_TOUCH_ONBOARDING.md`.
 
 ## 3) Build trust loop early
 

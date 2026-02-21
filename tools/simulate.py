@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -80,11 +80,13 @@ class SimParams:
 
     # Promotion thresholds (for SIMULATOR tuning)
     # NOTE: these are NOT final protocol values; they are for simulation feedback loops.
-    promo: PromotionThresholds = PromotionThresholds(
-        min_unique_authorized_receipts=5,
-        min_success_rate=0.70,
-        max_contradiction_rate=0.15,
-        min_stability_observed=0.65,
+    promo: PromotionThresholds = field(
+        default_factory=lambda: PromotionThresholds(
+            min_unique_authorized_receipts=5,
+            min_success_rate=0.70,
+            max_contradiction_rate=0.15,
+            min_stability_observed=0.65,
+        )
     )
 # NOTE:
 # Promotion thresholds below are for SIMULATION ONLY.
