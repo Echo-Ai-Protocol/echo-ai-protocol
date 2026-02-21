@@ -63,7 +63,15 @@ python3 tools/render_outreach_message.py \
   --output tools/out/outreach_message_ext-ai-ci-smoke.md
 python3 tools/external_ai_kpi_summary.py \
   --output tools/out/external_ai_kpi_summary.json
-TMP_MATRIX="$(mktemp "${TMPDIR:-/tmp}/echo-compat-matrix.XXXXXX.md")"
+TMP_MATRIX="$(python3 - <<'PY'
+import os
+import tempfile
+
+fd, path = tempfile.mkstemp(prefix="echo-compat-matrix.", suffix=".md")
+os.close(fd)
+print(path)
+PY
+)"
 cp docs/EXTERNAL_AI_COMPATIBILITY_MATRIX.md "$TMP_MATRIX"
 python3 tools/update_compatibility_matrix.py \
   --report examples/integration/pilot_feedback.template.json \
