@@ -78,10 +78,8 @@ sample_file_for_type() {
 
 make_temp_json() {
   local prefix="$1"
-  local tmp
-  tmp="$(mktemp -t "$prefix")"
-  mv "$tmp" "${tmp}.json"
-  echo "${tmp}.json"
+  local tmp_dir="${TMPDIR:-/tmp}"
+  mktemp "${tmp_dir%/}/${prefix}.XXXXXX.json"
 }
 
 run_node() {
