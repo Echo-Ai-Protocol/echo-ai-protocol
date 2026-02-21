@@ -59,4 +59,26 @@ else
   fail "reference-node/capabilities.local.json missing"
 fi
 
+required_external_ai_paths=(
+  "$ROOT_DIR/docs/EXTERNAL_AI_ATTRACTION_PLAYBOOK.md"
+  "$ROOT_DIR/docs/EXTERNAL_AI_COMPATIBILITY_MATRIX.md"
+  "$ROOT_DIR/docs/ZERO_TOUCH_ONBOARDING.md"
+  "$ROOT_DIR/examples/integration/pilot_feedback.template.json"
+  "$ROOT_DIR/examples/integration/candidate_pipeline.template.csv"
+  "$ROOT_DIR/examples/integration/outreach_message.template.md"
+  "$ROOT_DIR/tools/pilot_feedback_lint.py"
+  "$ROOT_DIR/tools/zero_touch_autogate.py"
+  "$ROOT_DIR/tools/candidate_shortlist.py"
+  "$ROOT_DIR/tools/update_compatibility_matrix.py"
+  "$ROOT_DIR/tools/render_outreach_message.py"
+  "$ROOT_DIR/tools/external_ai_kpi_summary.py"
+)
+
+for p in "${required_external_ai_paths[@]}"; do
+  if [[ ! -f "$p" ]]; then
+    fail "missing required external AI path: $p"
+  fi
+done
+pass "external AI onboarding artifacts found"
+
 pass "preflight completed"

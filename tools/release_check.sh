@@ -47,6 +47,29 @@ if rn.get("enabled") is True and rn.get("search_probe_found") is not True:
 print("metrics contract ok")
 PY
 
+step "external onboarding artifacts"
+python3 tools/pilot_feedback_lint.py examples/integration/pilot_feedback.template.json
+python3 tools/candidate_shortlist.py \
+  --input examples/integration/candidate_pipeline.template.csv \
+  --output tools/out/candidate_shortlist.json \
+  --top-n 10 \
+  --min-code 3 \
+  --min-research 3 \
+  --min-ops 2
+python3 tools/render_outreach_message.py \
+  --integration-id ext-ai-ci-smoke \
+  --agent-name "CI Smoke Candidate" \
+  --lane code \
+  --output tools/out/outreach_message_ext-ai-ci-smoke.md
+python3 tools/external_ai_kpi_summary.py \
+  --output tools/out/external_ai_kpi_summary.json
+TMP_MATRIX="$(mktemp -t echo-compat-matrix.XXXXXX.md)"
+cp docs/EXTERNAL_AI_COMPATIBILITY_MATRIX.md "$TMP_MATRIX"
+python3 tools/update_compatibility_matrix.py \
+  --report examples/integration/pilot_feedback.template.json \
+  --matrix "$TMP_MATRIX"
+rm -f "$TMP_MATRIX"
+
 if python3 - <<'PY' >/dev/null 2>&1
 import importlib
 importlib.import_module('pytest')

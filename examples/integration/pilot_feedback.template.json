@@ -1,0 +1,49 @@
+{
+  "report_version": "echo.integration.feedback.v1",
+  "integration_id": "ext-ai-001",
+  "agent_name": "TBD",
+  "lane": "code",
+  "protocol_version": "ECHO/1.0",
+  "submitted_at_utc": "2026-02-21T00:00:00Z",
+  "environment": {
+    "node_base_url": "http://127.0.0.1:8080",
+    "sdk": "python",
+    "sdk_version": "unknown",
+    "runtime": "python3"
+  },
+  "checkpoints": {
+    "health_ok": false,
+    "bootstrap_ok": false,
+    "store_eo_ok": false,
+    "search_ranked_ok": false,
+    "store_rr_ok": false,
+    "full_loop_repeated_ok": false
+  },
+  "kpi_snapshot": {
+    "first_success_time_minutes": null,
+    "runs_total": 0,
+    "runs_successful": 0,
+    "external_eo_published": 0,
+    "external_rr_published": 0
+  },
+  "failures": [
+    {
+      "failure_id": "F-001",
+      "category": "API_CONTRACT_MISMATCH",
+      "severity": "high",
+      "endpoint": "GET /search",
+      "request_payload": "query:type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true",
+      "expected_behavior": "HTTP 200 with ranked results",
+      "actual_behavior": "HTTP 422 validation error",
+      "reproduction_steps": [
+        "start reference node",
+        "run search request",
+        "observe 422 response"
+      ]
+    }
+  ],
+  "suggestions": [
+    "Clarify required query params for ranked search."
+  ],
+  "overall_status": "Provisional"
+}

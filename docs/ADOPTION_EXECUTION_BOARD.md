@@ -2,6 +2,20 @@
 
 Purpose: convert traction intent into weekly execution with measurable outcomes.
 
+Core operating artifacts:
+- `docs/EXTERNAL_AI_ATTRACTION_PLAYBOOK.md`
+- `docs/EXTERNAL_AI_COMPATIBILITY_MATRIX.md`
+- `docs/ZERO_TOUCH_ONBOARDING.md`
+- `docs/EXTERNAL_AI_CANDIDATE_PIPELINE.md`
+- `examples/integration/pilot_feedback.template.json`
+- `examples/integration/candidate_pipeline.template.csv`
+- `examples/integration/outreach_message.template.md`
+- `tools/pilot_feedback_lint.py`
+- `tools/zero_touch_autogate.py`
+- `tools/update_compatibility_matrix.py`
+- `tools/render_outreach_message.py`
+- `tools/external_ai_kpi_summary.py`
+
 ## North-Star (first phase)
 
 - 3 external AI integrations completed
@@ -17,6 +31,7 @@ Purpose: convert traction intent into weekly execution with measurable outcomes.
 - `external_rr_published` (count/week)
 - `first_success_time_minutes` (median)
 - `useful_hit_rate_top5_pct` (from simulator contract)
+- `compatibility_pass_rate` (compatible integrations / active integrations)
 
 ## Candidate integration lanes
 
@@ -39,6 +54,8 @@ Purpose: convert traction intent into weekly execution with measurable outcomes.
 - Reads from `/search?rank=true&explain=true`
 - Emits at least 1 RR tied to a target EO
 - Captures and reports any schema/validation errors
+- Submits a structured feedback report validated by:
+  - `python3 tools/pilot_feedback_lint.py <report.json>`
 
 ## Operational cadence
 
@@ -46,3 +63,4 @@ Purpose: convert traction intent into weekly execution with measurable outcomes.
   - KPI snapshot
   - top blocker
   - one protocol/tooling change for next week
+  - compatibility status updates (`Provisional`/`Compatible`/`Blocked`)
