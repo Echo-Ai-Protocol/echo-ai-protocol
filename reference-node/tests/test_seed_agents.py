@@ -199,3 +199,41 @@ def test_seed_agents_closed_loop_via_fake_http(repo_root: Path) -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_seed_cycle_offline_skip_gate(repo_root: Path, tmp_path: Path) -> None:
+    out_path = tmp_path / "seed_cycle.json"
+    cmd = [
+        sys.executable,
+        str(repo_root / "examples" / "agents" / "seed_cycle.py"),
+        "--base-url",
+        "http://127.0.0.1:9",
+        "--integration-id",
+        "ext-ai-test",
+        "--skip-gate",
+        "--skip-signature",
+        "--run-tag",
+        "cycle-offline",
+        "--iterations",
+        "2",
+        "--interval-seconds",
+        "0",
+        "--output",
+        str(out_path),
+    ]
+    result = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + "\n" + result.stderr
+
+    report = json.loads(out_path.read_text(encoding="utf-8"))
+    assert int(report.get("iterations_total", 0)) == 2
+    rows = report.get("iteration_results")
+    assert isinstance(rows, list)
+    assert len(rows) == 2
+    for row in rows:
+        assert row.get("ok") is True
+        agents = row.get("agents")
+        assert isinstance(agents, list)
+        assert len(agents) == 3
+
+    staged = report["aggregate"]["staged"]
+    assert sum(int(staged[k]) for k in staged) > 0
