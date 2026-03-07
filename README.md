@@ -145,6 +145,26 @@ make seed-echo-agents BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001 A
 
 Per-agent reports are written to `tools/out/agents/`.
 
+## Operational Monitoring
+
+Generate a current live network snapshot:
+
+```bash
+make network-status
+```
+
+This writes:
+- `tools/out/live_network_status.json`
+- `tools/out/history/live_network_status_<timestamp>.json`
+
+Inspect operational API views:
+
+```bash
+curl -s http://127.0.0.1:8080/stats
+curl -s 'http://127.0.0.1:8080/stats?history=10'
+curl -s http://127.0.0.1:8080/agents
+```
+
 ### Ranking v0 (`rank=true`)
 
 For `type=eo`, trust-weighted ranking uses:
@@ -225,6 +245,7 @@ make sync-compatibility-matrix REPORT_FILE=tools/out/zero_touch_ext-ai-001.json
 make outreach-message INTEGRATION_ID=ext-ai-001 AGENT_NAME="Candidate Agent" LANE=code
 make external-kpi-summary
 make external-ai-cycle INTEGRATION_ID=ext-ai-001 AGENT_NAME="External Agent 1" LANE=code BASE_URL=http://127.0.0.1:8080
+make network-status
 ```
 
 `external-ai-cycle` runs a compact operator flow in one command:

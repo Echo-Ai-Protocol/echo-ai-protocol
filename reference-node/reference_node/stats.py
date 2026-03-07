@@ -13,6 +13,7 @@ from .metrics import (
     extract_sim_metrics_v1,
     trend_sim_metrics_v1,
 )
+from .ops import build_live_network_status, load_live_status_history
 from .store import iter_stored_paths
 from .types import TYPE_DIR
 
@@ -160,6 +161,7 @@ def compute_stats(storage_root: Path, tools_out_dir: Path | None = None, history
         index_missing_files[object_type] = missing
 
     history = _sim_history_payload(out_dir, history_limit)
+    live_status = build_live_network_status(storage_root=storage_root, tools_out_dir=out_dir)
     return {
         "storage_root": str(storage_root),
         "index": {
@@ -172,7 +174,12 @@ def compute_stats(storage_root: Path, tools_out_dir: Path | None = None, history
             "counts": stored_counts,
             "total": sum(stored_counts.values()),
         },
+        "network_objects": live_status.get("network_objects", {}),
+        "agents": live_status.get("agents", {}),
+        "seed_cycle": live_status.get("seed_cycle", {}),
+        "errors": live_status.get("errors", {}),
         "simulator": _latest_sim_report_payload(out_dir),
         "simulator_history": history,
         "simulator_trend": _sim_trend_payload(history),
+        "network_status_history": load_live_status_history(out_dir, history_limit),
     }

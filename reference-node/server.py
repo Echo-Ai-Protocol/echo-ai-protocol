@@ -8,6 +8,7 @@ Endpoints:
 - GET /bundles/export
 - POST /bundles/import
 - GET /stats
+- GET /agents
 - GET /registry/capabilities
 - GET /registry/bootstrap
 - GET /health
@@ -56,6 +57,7 @@ class NodeConfig:
     manifest_path: Path
     schemas_dir: Path
     storage_root: Path
+    tools_out_dir: Path
     capabilities_path: Path
     require_signature: bool = False
 
@@ -330,6 +332,7 @@ def _bootstrap_payload(config: NodeConfig) -> Dict[str, Any]:
             "get_object": {"method": "GET", "path": "/objects/{type}/{object_id}"},
             "search": {"method": "GET", "path": "/search"},
             "stats": {"method": "GET", "path": "/stats"},
+            "agents": {"method": "GET", "path": "/agents"},
             "capabilities": {"method": "GET", "path": "/registry/capabilities"},
             "bootstrap": {"method": "GET", "path": "/registry/bootstrap"},
             "bundle_export": {"method": "GET", "path": "/bundles/export"},
@@ -404,21 +407,15 @@ def create_app(config: NodeConfig) -> FastAPI:
             raise HTTPException(status_code=422, detail={"errors": errors})
 
         try:
-            out = core.store_object(
+            out = core.store_object_idempotent(
                 storage_root=config.storage_root,
                 object_type=object_type,
                 obj=obj,
             )
-            obj_id = core.object_id_for_type(object_type, obj)
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Store failed: {exc}") from exc
 
-        return {
-            "status": "stored",
-            "type": object_type,
-            "id": obj_id,
-            "path": str(out),
-        }
+        return out
 
     @app.get("/objects/{type}/{object_id}")
     def get_object(type: str, object_id: str) -> Dict[str, Any]:
@@ -522,12 +519,29 @@ def create_app(config: NodeConfig) -> FastAPI:
     def get_stats(history: int = Query(0, ge=0, le=100)) -> Dict[str, Any]:
         stats = core.compute_stats(
             config.storage_root,
-            tools_out_dir=core.default_tools_out_dir(),
+            tools_out_dir=config.tools_out_dir,
             history_limit=history,
         )
         stats["manifest"] = str(config.manifest_path)
         stats["schemas_dir"] = str(config.schemas_dir)
         return stats
+
+    @app.get("/agents")
+    def get_agents() -> Dict[str, Any]:
+        rows = core.load_agent_registry(config.storage_root)
+        rows_sorted = sorted(
+            rows,
+            key=lambda r: (
+                str(r.get("last_seen", "")),
+                str(r.get("agent_did", "")),
+            ),
+            reverse=True,
+        )
+        return {
+            "count": len(rows_sorted),
+            "agents": rows_sorted,
+            "summary": core.summarize_agents(config.storage_root),
+        }
 
     @app.get("/registry/capabilities")
     def get_registry_capabilities() -> Dict[str, Any]:
@@ -558,6 +572,7 @@ def default_config() -> NodeConfig:
         manifest_path=Path(core.default_manifest_path()).expanduser().resolve(),
         schemas_dir=Path(core.default_schemas_dir()).expanduser().resolve(),
         storage_root=core.default_storage_root(),
+        tools_out_dir=Path(core.default_tools_out_dir()).expanduser().resolve(),
         capabilities_path=Path(core.default_capabilities_path()).expanduser().resolve(),
         require_signature=False,
     )
@@ -579,6 +594,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--manifest", default=str(core.default_manifest_path()))
     parser.add_argument("--schemas-dir", default=str(core.default_schemas_dir()))
+    parser.add_argument("--tools-out-dir", default=str(core.default_tools_out_dir()))
     parser.add_argument("--capabilities-file", default=str(core.default_capabilities_path()))
     parser.add_argument("--require-signature", action="store_true")
     return parser.parse_args()
@@ -594,6 +610,7 @@ def main() -> None:
         manifest_path=Path(args.manifest).expanduser().resolve(),
         schemas_dir=Path(args.schemas_dir).expanduser().resolve(),
         storage_root=core.default_storage_root(),
+        tools_out_dir=Path(args.tools_out_dir).expanduser().resolve(),
         capabilities_path=Path(args.capabilities_file).expanduser().resolve(),
         require_signature=bool(args.require_signature),
     )

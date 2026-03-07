@@ -177,6 +177,7 @@ python3 reference-node/server.py \
 - `GET /bundles/export`
 - `POST /bundles/import`
 - `GET /stats`
+- `GET /agents`
 - `GET /registry/capabilities`
 - `GET /registry/bootstrap`
 - `GET /reputation/{agent_did}`
@@ -237,6 +238,7 @@ Node stats:
 ```bash
 curl -s 'http://127.0.0.1:8080/stats'
 curl -s 'http://127.0.0.1:8080/stats?history=10'
+curl -s 'http://127.0.0.1:8080/agents'
 ```
 
 `/stats` includes object/index counters and latest simulator report metadata (when
@@ -305,7 +307,7 @@ Script checks:
 - CLI validate/store/search/index/export/import
 - HTTP startup + `/health`
 - HTTP `POST /objects`, `GET /objects/{type}/{id}`, `GET /search?rank=true`
-- HTTP `GET /bundles/export`, `POST /bundles/import`, `GET /stats`
+- HTTP `GET /bundles/export`, `POST /bundles/import`, `GET /stats`, `GET /agents`
 - SDK Python quickstart flow against running HTTP server
 
 If HTTP deps are not installed, HTTP section is skipped by default.
