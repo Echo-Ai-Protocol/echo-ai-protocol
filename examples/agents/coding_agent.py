@@ -15,7 +15,6 @@ from common import (
     load_sample_object,
     load_tasks,
     make_id,
-    repo_root,
     run_tag,
     stable_slug,
     store_or_stage,
