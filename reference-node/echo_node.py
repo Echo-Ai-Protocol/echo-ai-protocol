@@ -131,7 +131,7 @@ def cmd_store(args: argparse.Namespace) -> int:
             _print_validation_errors(errors)
             return 2
 
-        out = core.store_object(storage_root=storage_root, object_type=args.type, obj=raw)
+        store_result = core.store_object_idempotent(storage_root=storage_root, object_type=args.type, obj=raw)
     except (FileNotFoundError, ValueError) as exc:
         print("STORE: FAIL")
         print(f" - {exc}")
@@ -142,7 +142,14 @@ def cmd_store(args: argparse.Namespace) -> int:
         return 2
 
     print("VALIDATION: OK")
-    print(f"STORED: {out}")
+    status = str(store_result.get("status", "stored"))
+    if status == "duplicate_ignored":
+        print(f"STATUS: {status}")
+        print(f"ID: {store_result.get('id', '')}")
+        print(f"EXISTING_PATH: {store_result.get('path', '')}")
+    else:
+        print(f"STATUS: {status}")
+        print(f"STORED: {store_result.get('path', '')}")
     return 0
 
 
