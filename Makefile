@@ -1,4 +1,4 @@
-.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle run-coding-agent run-research-agent run-evaluator-agent seed-echo-agents
+.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle run-coding-agent run-research-agent run-evaluator-agent seed-echo-agents seed-echo-cycle
 
 FEEDBACK_FILE ?= examples/integration/pilot_feedback.template.json
 BASE_URL ?= http://127.0.0.1:8080
@@ -23,6 +23,9 @@ AGENT_SKIP_GATE ?= 0
 CODING_AGENT_NAME ?= CodingAgent
 RESEARCH_AGENT_NAME ?= ResearchAgent
 EVALUATOR_AGENT_NAME ?= EvaluatorAgent
+SEED_ITERATIONS ?= 1
+SEED_INTERVAL_SECONDS ?= 0
+SEED_CYCLE_OUT ?= tools/out/agents/seed_cycle_$(INTEGRATION_ID).json
 
 preflight:
 	bash tools/preflight.sh
@@ -137,3 +140,16 @@ seed-echo-agents:
 	$(MAKE) run-coding-agent BASE_URL=$(BASE_URL) INTEGRATION_ID=$(INTEGRATION_ID) SKIP_SIGNATURE=$(SKIP_SIGNATURE) AGENT_SKIP_GATE=$(AGENT_SKIP_GATE)
 	$(MAKE) run-research-agent BASE_URL=$(BASE_URL) INTEGRATION_ID=$(INTEGRATION_ID) SKIP_SIGNATURE=$(SKIP_SIGNATURE) AGENT_SKIP_GATE=$(AGENT_SKIP_GATE)
 	$(MAKE) run-evaluator-agent BASE_URL=$(BASE_URL) INTEGRATION_ID=$(INTEGRATION_ID) SKIP_SIGNATURE=$(SKIP_SIGNATURE) AGENT_SKIP_GATE=$(AGENT_SKIP_GATE)
+
+seed-echo-cycle:
+	python3 examples/agents/seed_cycle.py \
+		--base-url $(BASE_URL) \
+		--integration-id $(INTEGRATION_ID) \
+		--coding-agent-name "$(CODING_AGENT_NAME)" \
+		--research-agent-name "$(RESEARCH_AGENT_NAME)" \
+		--evaluator-agent-name "$(EVALUATOR_AGENT_NAME)" \
+		--iterations $(SEED_ITERATIONS) \
+		--interval-seconds $(SEED_INTERVAL_SECONDS) \
+		--output $(SEED_CYCLE_OUT) \
+		$(if $(filter 1,$(SKIP_SIGNATURE)),--skip-signature,) \
+		$(if $(filter 1,$(AGENT_SKIP_GATE)),--skip-gate,)

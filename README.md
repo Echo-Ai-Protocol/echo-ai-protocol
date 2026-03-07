@@ -123,6 +123,12 @@ Run all three agents in order:
 make seed-echo-agents BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001
 ```
 
+Run continuous seed loop with one command:
+
+```bash
+make seed-echo-cycle BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001 SEED_ITERATIONS=5 SEED_INTERVAL_SECONDS=2
+```
+
 Run one agent:
 
 ```bash

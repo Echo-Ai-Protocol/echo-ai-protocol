@@ -69,8 +69,18 @@ Reports are written to:
 make seed-echo-agents BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001
 ```
 
+Or run via single orchestrator (supports multi-iteration loop):
+
+```bash
+make seed-echo-cycle BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001 SEED_ITERATIONS=3 SEED_INTERVAL_SECONDS=2
+```
+
 Then inspect:
 
 ```bash
 curl -s http://127.0.0.1:8080/stats
 ```
+
+The cycle report is written to:
+
+- `tools/out/agents/seed_cycle_<integration>.json`
