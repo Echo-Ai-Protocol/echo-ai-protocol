@@ -111,6 +111,34 @@ SDK v1.1 adds:
 - `wait_for_health()`
 - convenience helpers: `store_eo()`, `store_rr()`, `search_ranked_eo()`
 
+## Run First ECHO Agents
+
+Reference seed agents live in `examples/agents/` and create a real closed loop:
+
+`REQUEST -> SEARCH -> EO -> RR -> TRACE`
+
+Run all three agents in order:
+
+```bash
+make seed-echo-agents BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001
+```
+
+Run one agent:
+
+```bash
+make run-coding-agent BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001
+make run-research-agent BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001
+make run-evaluator-agent BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001
+```
+
+Offline staging mode:
+
+```bash
+make seed-echo-agents BASE_URL=http://127.0.0.1:8080 INTEGRATION_ID=ext-ai-001 AGENT_SKIP_GATE=1
+```
+
+Per-agent reports are written to `tools/out/agents/`.
+
 ### Ranking v0 (`rank=true`)
 
 For `type=eo`, trust-weighted ranking uses:

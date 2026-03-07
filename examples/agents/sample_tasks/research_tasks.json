@@ -1,0 +1,30 @@
+[
+  {
+    "task_id": "onboarding-dropoff-signals",
+    "topic": "What early signals predict external AI onboarding drop-off?",
+    "constraints": "Use existing protocol telemetry only.",
+    "summary": "Early failure on /health and /search explainability strongly correlates with pilot abandonment.",
+    "recommendations": "Prioritize bootstrap clarity, publish response examples, and keep first successful run under 30 minutes.",
+    "search_hint": "echo.eo",
+    "outcome_metrics": {
+      "effectiveness_score": 0.8,
+      "stability_score": 0.74,
+      "iterations": 1
+    },
+    "confidence_score": 0.84
+  },
+  {
+    "task_id": "validator-lane-priority",
+    "topic": "How to prioritize evaluator lane work in first month?",
+    "constraints": "Avoid advanced reputation redesign.",
+    "summary": "Focused RR issuance on high-reuse EO cohorts improves trust signal density with minimal implementation cost.",
+    "recommendations": "Run weekly evaluator cycles, require rationale snippets, and monitor SUCCESS/PARTIAL/FAIL distribution.",
+    "search_hint": "echo.eo.agent",
+    "outcome_metrics": {
+      "effectiveness_score": 0.78,
+      "stability_score": 0.73,
+      "iterations": 2
+    },
+    "confidence_score": 0.82
+  }
+]
