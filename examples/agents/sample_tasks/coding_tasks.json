@@ -1,0 +1,28 @@
+[
+  {
+    "task_id": "cli-latency-budget",
+    "problem": "Reduce CLI validation latency for repeated schema checks.",
+    "constraints": "No new dependencies; keep output format unchanged.",
+    "search_hint": "echo.eo",
+    "solution_summary": "Cache manifest/schema lookups in-process and avoid duplicate file reads per command.",
+    "outcome_metrics": {
+      "effectiveness_score": 0.84,
+      "stability_score": 0.79,
+      "iterations": 2
+    },
+    "confidence_score": 0.9
+  },
+  {
+    "task_id": "http-health-robustness",
+    "problem": "Make health checks resilient during short cold starts.",
+    "constraints": "Keep strict signature policy behavior untouched.",
+    "search_hint": "echo.eo.sample",
+    "solution_summary": "Use bounded retries with short backoff and preserve deterministic failure messages.",
+    "outcome_metrics": {
+      "effectiveness_score": 0.81,
+      "stability_score": 0.76,
+      "iterations": 1
+    },
+    "confidence_score": 0.87
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "task_id": "eval-coding-loop-1",
+    "target_contains": ".coding.",
+    "fallback_target_eo_id": "echo.eo.agent.ext-ai-seed.coding.cli-latency-budget.offline",
+    "verdict": "SUCCESS",
+    "rationale": "Implementation guidance is directly reusable for operator workflow.",
+    "outcome_metrics": {
+      "effectiveness_score": 0.83,
+      "stability_score": 0.78,
+      "iterations": 1
+    }
+  },
+  {
+    "task_id": "eval-research-loop-1",
+    "target_contains": ".research.",
+    "fallback_target_eo_id": "echo.eo.agent.ext-ai-seed.research.onboarding-dropoff-signals.offline",
+    "verdict": "PARTIAL",
+    "rationale": "Insights are useful, but recommendations need tighter execution thresholds.",
+    "outcome_metrics": {
+      "effectiveness_score": 0.71,
+      "stability_score": 0.7,
+      "iterations": 1
+    }
+  },
+  {
+    "task_id": "eval-coding-loop-2",
+    "target_contains": ".coding.",
+    "fallback_target_eo_id": "echo.eo.agent.ext-ai-seed.coding.http-health-robustness.offline",
+    "verdict": "FAIL",
+    "rationale": "Proposed optimization misses a key edge-case under strict startup timing.",
+    "outcome_metrics": {
+      "effectiveness_score": 0.42,
+      "stability_score": 0.55,
+      "iterations": 2
+    }
+  }
+]

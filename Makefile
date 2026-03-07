@@ -1,4 +1,4 @@
-.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle
+.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle run-coding-agent run-research-agent run-evaluator-agent seed-echo-agents
 
 FEEDBACK_FILE ?= examples/integration/pilot_feedback.template.json
 BASE_URL ?= http://127.0.0.1:8080
@@ -19,6 +19,10 @@ ZERO_TOUCH_HISTORY_DIR ?= tools/out/history
 EXTERNAL_KPI_OUT ?= tools/out/external_ai_kpi_summary.json
 CYCLE_SKIP_GATE ?= 0
 CYCLE_SUMMARY_OUT ?= tools/out/external_ai_cycle_$(INTEGRATION_ID).json
+AGENT_SKIP_GATE ?= 0
+CODING_AGENT_NAME ?= CodingAgent
+RESEARCH_AGENT_NAME ?= ResearchAgent
+EVALUATOR_AGENT_NAME ?= EvaluatorAgent
 
 preflight:
 	bash tools/preflight.sh
@@ -104,3 +108,32 @@ external-ai-cycle:
 		--summary-out $(CYCLE_SUMMARY_OUT) \
 		$(if $(filter 1,$(SKIP_SIGNATURE)),--skip-signature,) \
 		$(if $(filter 1,$(CYCLE_SKIP_GATE)),--skip-gate,)
+
+run-coding-agent:
+	python3 examples/agents/coding_agent.py \
+		--base-url $(BASE_URL) \
+		--integration-id $(INTEGRATION_ID) \
+		--agent-name "$(CODING_AGENT_NAME)" \
+		$(if $(filter 1,$(SKIP_SIGNATURE)),--skip-signature,) \
+		$(if $(filter 1,$(AGENT_SKIP_GATE)),--skip-gate,)
+
+run-research-agent:
+	python3 examples/agents/research_agent.py \
+		--base-url $(BASE_URL) \
+		--integration-id $(INTEGRATION_ID) \
+		--agent-name "$(RESEARCH_AGENT_NAME)" \
+		$(if $(filter 1,$(SKIP_SIGNATURE)),--skip-signature,) \
+		$(if $(filter 1,$(AGENT_SKIP_GATE)),--skip-gate,)
+
+run-evaluator-agent:
+	python3 examples/agents/evaluator_agent.py \
+		--base-url $(BASE_URL) \
+		--integration-id $(INTEGRATION_ID) \
+		--agent-name "$(EVALUATOR_AGENT_NAME)" \
+		$(if $(filter 1,$(SKIP_SIGNATURE)),--skip-signature,) \
+		$(if $(filter 1,$(AGENT_SKIP_GATE)),--skip-gate,)
+
+seed-echo-agents:
+	$(MAKE) run-coding-agent BASE_URL=$(BASE_URL) INTEGRATION_ID=$(INTEGRATION_ID) SKIP_SIGNATURE=$(SKIP_SIGNATURE) AGENT_SKIP_GATE=$(AGENT_SKIP_GATE)
+	$(MAKE) run-research-agent BASE_URL=$(BASE_URL) INTEGRATION_ID=$(INTEGRATION_ID) SKIP_SIGNATURE=$(SKIP_SIGNATURE) AGENT_SKIP_GATE=$(AGENT_SKIP_GATE)
+	$(MAKE) run-evaluator-agent BASE_URL=$(BASE_URL) INTEGRATION_ID=$(INTEGRATION_ID) SKIP_SIGNATURE=$(SKIP_SIGNATURE) AGENT_SKIP_GATE=$(AGENT_SKIP_GATE)
