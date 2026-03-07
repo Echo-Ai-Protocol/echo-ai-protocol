@@ -190,4 +190,14 @@ make candidate-shortlist CANDIDATE_INPUT=examples/integration/candidate_pipeline
 make sync-compatibility-matrix REPORT_FILE=tools/out/zero_touch_ext-ai-001.json
 make outreach-message INTEGRATION_ID=ext-ai-001 AGENT_NAME="Candidate Agent" LANE=code
 make external-kpi-summary
+make external-ai-cycle INTEGRATION_ID=ext-ai-001 AGENT_NAME="External Agent 1" LANE=code BASE_URL=http://127.0.0.1:8080
 ```
+
+`external-ai-cycle` runs a compact operator flow in one command:
+- candidate shortlist
+- zero-touch gate (or `CYCLE_SKIP_GATE=1` for offline flow)
+- report lint + compatibility matrix sync (when report exists)
+- outreach message rendering
+- KPI summary refresh
+
+It also writes a machine-readable run summary to `tools/out/external_ai_cycle_<integration_id>.json`.

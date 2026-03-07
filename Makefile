@@ -1,4 +1,4 @@
-.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary
+.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle
 
 FEEDBACK_FILE ?= examples/integration/pilot_feedback.template.json
 BASE_URL ?= http://127.0.0.1:8080
@@ -17,6 +17,8 @@ OUTREACH_TEMPLATE ?= examples/integration/outreach_message.template.md
 OUTREACH_OUT ?= tools/out/outreach_message_$(INTEGRATION_ID).md
 ZERO_TOUCH_HISTORY_DIR ?= tools/out/history
 EXTERNAL_KPI_OUT ?= tools/out/external_ai_kpi_summary.json
+CYCLE_SKIP_GATE ?= 0
+CYCLE_SUMMARY_OUT ?= tools/out/external_ai_cycle_$(INTEGRATION_ID).json
 
 preflight:
 	bash tools/preflight.sh
@@ -82,3 +84,23 @@ outreach-message:
 external-kpi-summary:
 	python3 tools/external_ai_kpi_summary.py \
 		--output $(EXTERNAL_KPI_OUT)
+
+external-ai-cycle:
+	python3 tools/external_ai_cycle.py \
+		--integration-id $(INTEGRATION_ID) \
+		--agent-name "$(AGENT_NAME)" \
+		--lane $(LANE) \
+		--base-url $(BASE_URL) \
+		--runs $(RUNS) \
+		--compatible-min-days $(COMPATIBLE_MIN_DAYS) \
+		--candidate-input $(CANDIDATE_INPUT) \
+		--shortlist-out $(CANDIDATE_SHORTLIST_OUT) \
+		--report-out $(ZERO_TOUCH_REPORT) \
+		--matrix $(COMPAT_MATRIX) \
+		--outreach-template $(OUTREACH_TEMPLATE) \
+		--outreach-out $(OUTREACH_OUT) \
+		--history-dir $(ZERO_TOUCH_HISTORY_DIR) \
+		--kpi-out $(EXTERNAL_KPI_OUT) \
+		--summary-out $(CYCLE_SUMMARY_OUT) \
+		$(if $(filter 1,$(SKIP_SIGNATURE)),--skip-signature,) \
+		$(if $(filter 1,$(CYCLE_SKIP_GATE)),--skip-gate,)

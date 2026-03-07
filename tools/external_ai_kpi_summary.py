@@ -52,6 +52,10 @@ def _find_reports(paths: List[str], globs: List[str]) -> List[Path]:
 
 def parse_args() -> argparse.Namespace:
     repo = Path(__file__).resolve().parents[1]
+    default_globs = [
+        str(repo / "tools" / "out" / "zero_touch_*.json"),
+        str(repo / "tools" / "out" / "history" / "zero_touch_*.json"),
+    ]
     parser = argparse.ArgumentParser(description="Build external AI KPI summary from zero-touch reports")
     parser.add_argument(
         "--report",
@@ -60,12 +64,14 @@ def parse_args() -> argparse.Namespace:
         help="Explicit report path(s)",
     )
     parser.add_argument(
+        "--no-default-globs",
+        action="store_true",
+        help="Do not include built-in report discovery globs",
+    )
+    parser.add_argument(
         "--glob",
         action="append",
-        default=[
-            str(repo / "tools" / "out" / "zero_touch_*.json"),
-            str(repo / "tools" / "out" / "history" / "zero_touch_*.json"),
-        ],
+        default=[],
         help="Glob pattern(s) for report discovery",
     )
     parser.add_argument(
@@ -77,7 +83,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    paths = _find_reports(paths=list(args.report), globs=list(args.glob))
+    globs = [] if args.no_default_globs else [
+        str(Path(__file__).resolve().parents[1] / "tools" / "out" / "zero_touch_*.json"),
+        str(Path(__file__).resolve().parents[1] / "tools" / "out" / "history" / "zero_touch_*.json"),
+    ]
+    globs.extend(list(args.glob))
+    paths = _find_reports(paths=list(args.report), globs=globs)
 
     reports: List[Dict[str, Any]] = []
     for p in paths:
