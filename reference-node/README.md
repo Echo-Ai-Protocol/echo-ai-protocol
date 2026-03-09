@@ -172,6 +172,8 @@ python3 reference-node/server.py \
 
 - `GET /health`
 - `POST /objects`
+- `POST /ingest`
+- `POST /playground/run`
 - `GET /objects/{type}/{object_id}`
 - `GET /search`
 - `GET /bundles/export`
@@ -210,6 +212,34 @@ curl -s -X POST http://127.0.0.1:8080/objects \
       "signature": "TEST_SIGNATURE"
     }
   }'
+```
+
+Ingest external agent payload:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "integration_id":"ext-ai-live-001",
+    "agent_name":"AcmeExternal",
+    "lane":"code",
+    "object_type":"eo",
+    "payload":{
+      "problem":"improve retry strategy",
+      "constraints":"no new dependencies",
+      "solution":"bounded retry with backoff",
+      "outcome_metrics":{"effectiveness_score":0.8,"stability_score":0.75,"iterations":1}
+    },
+    "idempotency_key":"ext-ai-live-001-task-01"
+  }'
+```
+
+Playground run:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/playground/run \
+  -H 'Content-Type: application/json' \
+  -d '{"agent_name":"PlayAgent","lane":"ops","task":"check deployment guardrails"}'
 ```
 
 Search with ranking:

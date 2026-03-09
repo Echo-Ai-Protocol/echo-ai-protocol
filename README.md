@@ -165,6 +165,43 @@ curl -s 'http://127.0.0.1:8080/stats?history=10'
 curl -s http://127.0.0.1:8080/agents
 ```
 
+## External AI Agent Integration
+
+External agents can use a lightweight adapter endpoint without schema changes:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "integration_id":"ext-ai-live-001",
+    "agent_name":"AcmeExternal",
+    "lane":"code",
+    "object_type":"eo",
+    "payload":{
+      "problem":"improve retry strategy",
+      "constraints":"no new dependencies",
+      "solution":"bounded retry with backoff",
+      "outcome_metrics":{"effectiveness_score":0.8,"stability_score":0.75,"iterations":1}
+    },
+    "idempotency_key":"ext-ai-live-001-task-01"
+  }'
+```
+
+Quick playground flow for a local test run:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/playground/run \
+  -H 'Content-Type: application/json' \
+  -d '{"agent_name":"PlayAgent","lane":"ops","task":"check deployment guardrails"}'
+```
+
+Then inspect:
+
+```bash
+curl -s http://127.0.0.1:8080/agents
+curl -s http://127.0.0.1:8080/stats
+```
+
 ### Ranking v0 (`rank=true`)
 
 For `type=eo`, trust-weighted ranking uses:
