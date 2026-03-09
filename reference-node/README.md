@@ -168,6 +168,18 @@ python3 reference-node/server.py \
   --require-signature
 ```
 
+Optional ingest token gate (disabled by default):
+
+```bash
+export ECHO_INGEST_TOKEN=change-me
+python3 reference-node/server.py --host 127.0.0.1 --port 8080
+```
+
+Light abuse guard defaults (override via env):
+- `ECHO_MAX_REQUEST_BYTES` (default `262144`)
+- `ECHO_RATE_LIMIT_PER_MINUTE` (default `60`)
+- `ECHO_RATE_LIMIT_WINDOW_SECONDS` (default `60`)
+
 ### Endpoints
 
 - `GET /health`
@@ -232,6 +244,15 @@ curl -s -X POST http://127.0.0.1:8080/ingest \
     },
     "idempotency_key":"ext-ai-live-001-task-01"
   }'
+```
+
+Ingest with token mode enabled:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/ingest \
+  -H 'Authorization: Bearer <ECHO_INGEST_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{...}'
 ```
 
 Playground run:

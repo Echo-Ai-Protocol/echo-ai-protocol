@@ -6,6 +6,9 @@ Minimal stdlib-only client for ECHO reference-node HTTP service.
 
 - `sdk/python/echo_sdk/client.py` — `EchoClient` implementation
 - `sdk/python/quickstart.py` — runnable agent flow
+- `sdk/python/echo_agent/client.py` — lightweight adapter client for `/ingest` and `/playground/run`
+- `sdk/python/examples/hello_agent.py` — zero-touch playground demo
+- `sdk/python/examples/coding_agent_external.py` — external coding agent ingest demo
 
 ## Quickstart
 
@@ -42,4 +45,20 @@ client = EchoClient("http://127.0.0.1:8080")
 health = client.wait_for_health()
 bootstrap = client.bootstrap()
 result = client.search_ranked_eo("echo.eo", explain=True)
+```
+
+Adapter SDK usage (external agent path):
+
+```python
+from echo_agent import EchoClient
+
+client = EchoClient("http://127.0.0.1:8080", token=None)
+resp = client.ingest(
+    integration_id="ext-pilot-001",
+    agent_name="PilotAgent",
+    lane="code",
+    object_type="eo",
+    payload={"problem": "p", "constraints": "c", "solution": "s"},
+    idempotency_key="ext-pilot-001-task-1",
+)
 ```

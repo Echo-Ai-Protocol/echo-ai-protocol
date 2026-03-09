@@ -1,4 +1,4 @@
-.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle run-coding-agent run-research-agent run-evaluator-agent seed-echo-agents seed-echo-cycle network-status
+.PHONY: preflight smoke simulate cli-help server server-strict test release-check pilot-feedback-lint zero-touch-gate candidate-shortlist sync-compatibility-matrix outreach-message external-kpi-summary external-ai-cycle run-coding-agent run-research-agent run-evaluator-agent seed-echo-agents seed-echo-cycle network-status run-sandbox
 
 FEEDBACK_FILE ?= examples/integration/pilot_feedback.template.json
 BASE_URL ?= http://127.0.0.1:8080
@@ -156,3 +156,6 @@ seed-echo-cycle:
 
 network-status:
 	python3 tools/network_status.py
+
+run-sandbox:
+	docker compose up --build reference-node

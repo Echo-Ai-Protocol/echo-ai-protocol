@@ -1,0 +1,17 @@
+services:
+  reference-node:
+    build:
+      context: .
+      dockerfile: reference-node/Dockerfile
+    container_name: echo-reference-node-sandbox
+    ports:
+      - "${ECHO_SANDBOX_PORT:-8080}:8080"
+    environment:
+      ECHO_INGEST_TOKEN: "${ECHO_INGEST_TOKEN:-}"
+      ECHO_MAX_REQUEST_BYTES: "${ECHO_MAX_REQUEST_BYTES:-262144}"
+      ECHO_RATE_LIMIT_PER_MINUTE: "${ECHO_RATE_LIMIT_PER_MINUTE:-60}"
+      ECHO_RATE_LIMIT_WINDOW_SECONDS: "${ECHO_RATE_LIMIT_WINDOW_SECONDS:-60}"
+    volumes:
+      - ./reference-node/storage:/app/reference-node/storage
+      - ./tools/out:/app/tools/out
+    restart: unless-stopped

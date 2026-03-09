@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import re
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,8 +32,9 @@ from typing import Any, Dict, List
 HTTP_IMPORT_ERROR: Exception | None = None
 try:
     import uvicorn
-    from fastapi import FastAPI, HTTPException, Query
+    from fastapi import FastAPI, HTTPException, Query, Request
     from pydantic import BaseModel, Field
+    from starlette.responses import JSONResponse
 except Exception as exc:  # pragma: no cover - environment-dependent import path
     HTTP_IMPORT_ERROR = exc
     uvicorn = None
@@ -54,6 +57,14 @@ except Exception as exc:  # pragma: no cover - environment-dependent import path
     class FastAPI:  # type: ignore[no-redef]
         pass
 
+    class Request:  # type: ignore[no-redef]
+        pass
+
+    class JSONResponse:  # type: ignore[no-redef]
+        def __init__(self, content: Any, status_code: int = 200):
+            self.content = content
+            self.status_code = status_code
+
 import reference_node as core
 
 
@@ -65,6 +76,10 @@ class NodeConfig:
     tools_out_dir: Path
     capabilities_path: Path
     require_signature: bool = False
+    ingest_token: str = ""
+    max_request_bytes: int = 262_144
+    rate_limit_per_minute: int = 60
+    rate_limit_window_seconds: int = 60
 
 
 class ObjectIn(BaseModel):
@@ -115,6 +130,41 @@ def _normalize_unit_interval(value: float) -> float:
     if value <= 1.0:
         return max(0.0, min(value, 1.0))
     return max(0.0, min(value / 100.0, 1.0))
+
+
+def _env_int(name: str, default: int, minimum: int = 0) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return max(minimum, int(default))
+    try:
+        value = int(raw)
+    except Exception:
+        return max(minimum, int(default))
+    return max(minimum, value)
+
+
+class _InMemoryRateLimiter:
+    def __init__(self, limit: int, window_seconds: int):
+        self.limit = max(0, int(limit))
+        self.window_seconds = max(1, int(window_seconds))
+        self._state: Dict[str, List[float]] = {}
+        self._lock = threading.Lock()
+
+    def allow(self, key: str) -> tuple[bool, int]:
+        if self.limit <= 0:
+            return True, 0
+        now = time.time()
+        cutoff = now - float(self.window_seconds)
+        with self._lock:
+            bucket = [ts for ts in self._state.get(key, []) if ts >= cutoff]
+            if len(bucket) >= self.limit:
+                oldest = min(bucket)
+                retry_after = max(1, int((oldest + self.window_seconds) - now))
+                self._state[key] = bucket
+                return False, retry_after
+            bucket.append(now)
+            self._state[key] = bucket
+            return True, 0
 
 
 _TRACE_ACTIVITY_TYPES = {"PUBLISH_EO", "REUSE_EO", "ISSUE_RR", "ASK", "EVALUATE"}
@@ -535,6 +585,13 @@ def _bootstrap_payload(config: NodeConfig) -> Dict[str, Any]:
             "bundle_import": {"method": "POST", "path": "/bundles/import"},
             "reputation": {"method": "GET", "path": "/reputation/{agent_did}"},
         },
+        "ingest": {
+            "auth_mode": "optional_bearer",
+            "auth_required": bool(str(config.ingest_token or "").strip()),
+            "max_request_bytes": int(config.max_request_bytes),
+            "rate_limit_per_minute": int(config.rate_limit_per_minute),
+            "rate_limit_window_seconds": int(config.rate_limit_window_seconds),
+        },
         "examples": {
             "store": {
                 "type": "eo",
@@ -550,6 +607,7 @@ def _bootstrap_payload(config: NodeConfig) -> Dict[str, Any]:
             },
             "search_ranked": "/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true",
             "ingest_eo": "/ingest",
+            "ingest_auth_header": "Authorization: Bearer <ECHO_INGEST_TOKEN>",
             "stats_with_history": "/stats?history=10",
             "sdk_python_quickstart": "python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080",
         },
@@ -567,6 +625,76 @@ def create_app(config: NodeConfig) -> FastAPI:
 
     app = FastAPI(title="ECHO Reference Node", version="0.9")
     app.state.config = config
+    rate_limiter = _InMemoryRateLimiter(
+        limit=int(config.rate_limit_per_minute),
+        window_seconds=int(config.rate_limit_window_seconds),
+    )
+
+    def _require_ingest_auth(request: Request) -> None:
+        token = str(config.ingest_token or "").strip()
+        if not token:
+            return
+        auth_header = str(request.headers.get("authorization", "")).strip()
+        expected = f"Bearer {token}"
+        if auth_header != expected:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": "unauthorized",
+                    "message": "missing or invalid bearer token",
+                },
+            )
+
+    def _enforce_rate_limit(request: Request, agent_name: str) -> None:
+        client_ip = "unknown"
+        if getattr(request, "client", None) is not None:
+            host = getattr(request.client, "host", None)
+            if isinstance(host, str) and host.strip():
+                client_ip = host.strip()
+        key = f"{client_ip}:{_stable_slug(agent_name)}"
+        allowed, retry_after = rate_limiter.allow(key)
+        if allowed:
+            return
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "rate_limited",
+                "message": "ingest rate limit exceeded",
+                "retry_after_seconds": int(retry_after),
+                "limit_per_window": int(config.rate_limit_per_minute),
+                "window_seconds": int(config.rate_limit_window_seconds),
+            },
+        )
+
+    @app.middleware("http")
+    async def _request_size_guard(request: Request, call_next):  # type: ignore[no-untyped-def]
+        if request.method in {"POST", "PUT", "PATCH"}:
+            limit = max(1024, int(config.max_request_bytes))
+            content_length_raw = request.headers.get("content-length")
+            if isinstance(content_length_raw, str) and content_length_raw.strip():
+                try:
+                    if int(content_length_raw) > limit:
+                        return JSONResponse(
+                            status_code=413,
+                            content={
+                                "error": "payload_too_large",
+                                "message": "request body exceeds configured size limit",
+                                "max_request_bytes": limit,
+                            },
+                        )
+                except Exception:
+                    pass
+            body = await request.body()
+            if len(body) > limit:
+                return JSONResponse(
+                    status_code=413,
+                    content={
+                        "error": "payload_too_large",
+                        "message": "request body exceeds configured size limit",
+                        "max_request_bytes": limit,
+                    },
+                )
+        return await call_next(request)
 
     def _validate_and_store(object_type: str, obj: Dict[str, Any], skip_signature: bool = False) -> Dict[str, Any]:
         if object_type not in core.TYPE_TO_FAMILY:
@@ -606,6 +734,7 @@ def create_app(config: NodeConfig) -> FastAPI:
             "manifest": str(config.manifest_path),
             "schemas_dir": str(config.schemas_dir),
             "require_signature": config.require_signature,
+            "ingest_auth_required": bool(str(config.ingest_token or "").strip()),
         }
 
     @app.post("/objects")
@@ -617,7 +746,8 @@ def create_app(config: NodeConfig) -> FastAPI:
         )
 
     @app.post("/ingest")
-    def post_ingest(envelope: IngestIn) -> Dict[str, Any]:
+    def post_ingest(envelope: IngestIn, request: Request) -> Dict[str, Any]:
+        _require_ingest_auth(request)
         integration_id = str(envelope.integration_id).strip()
         agent_name = str(envelope.agent_name).strip()
         lane = str(envelope.lane).strip()
@@ -628,6 +758,7 @@ def create_app(config: NodeConfig) -> FastAPI:
             raise HTTPException(status_code=400, detail="object_type must be one of: eo|trace|rr")
         if not isinstance(envelope.payload, dict):
             raise HTTPException(status_code=400, detail="payload must be a JSON object")
+        _enforce_rate_limit(request=request, agent_name=agent_name)
 
         mapped = _build_ingest_object(
             integration_id=integration_id,
@@ -661,13 +792,15 @@ def create_app(config: NodeConfig) -> FastAPI:
         return response
 
     @app.post("/playground/run")
-    def post_playground_run(req: PlaygroundRunIn) -> Dict[str, Any]:
+    def post_playground_run(req: PlaygroundRunIn, request: Request) -> Dict[str, Any]:
+        _require_ingest_auth(request)
         agent_name = str(req.agent_name).strip()
         lane = str(req.lane).strip()
         task = str(req.task).strip()
         integration_id = str(req.integration_id).strip() or "playground"
         if not agent_name or not lane or not task:
             raise HTTPException(status_code=400, detail="agent_name, lane, task must be non-empty")
+        _enforce_rate_limit(request=request, agent_name=agent_name)
 
         integration_slug = _stable_slug(integration_id)
         lane_slug = _stable_slug(lane)
@@ -885,6 +1018,10 @@ def default_config() -> NodeConfig:
         tools_out_dir=Path(core.default_tools_out_dir()).expanduser().resolve(),
         capabilities_path=Path(core.default_capabilities_path()).expanduser().resolve(),
         require_signature=False,
+        ingest_token=str(os.getenv("ECHO_INGEST_TOKEN", "")).strip(),
+        max_request_bytes=_env_int("ECHO_MAX_REQUEST_BYTES", 262_144, minimum=1024),
+        rate_limit_per_minute=_env_int("ECHO_RATE_LIMIT_PER_MINUTE", 60, minimum=0),
+        rate_limit_window_seconds=_env_int("ECHO_RATE_LIMIT_WINDOW_SECONDS", 60, minimum=1),
     )
 
 
@@ -899,6 +1036,7 @@ app = create_default_app()
 
 
 def parse_args() -> argparse.Namespace:
+    default = default_config()
     parser = argparse.ArgumentParser(description="Run ECHO reference-node HTTP server")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
@@ -907,6 +1045,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tools-out-dir", default=str(core.default_tools_out_dir()))
     parser.add_argument("--capabilities-file", default=str(core.default_capabilities_path()))
     parser.add_argument("--require-signature", action="store_true")
+    parser.add_argument("--ingest-token", default=str(default.ingest_token))
+    parser.add_argument("--max-request-bytes", type=int, default=int(default.max_request_bytes))
+    parser.add_argument("--rate-limit-per-minute", type=int, default=int(default.rate_limit_per_minute))
+    parser.add_argument("--rate-limit-window-seconds", type=int, default=int(default.rate_limit_window_seconds))
     return parser.parse_args()
 
 
@@ -923,6 +1065,10 @@ def main() -> None:
         tools_out_dir=Path(args.tools_out_dir).expanduser().resolve(),
         capabilities_path=Path(args.capabilities_file).expanduser().resolve(),
         require_signature=bool(args.require_signature),
+        ingest_token=str(args.ingest_token or "").strip(),
+        max_request_bytes=max(1024, int(args.max_request_bytes)),
+        rate_limit_per_minute=max(0, int(args.rate_limit_per_minute)),
+        rate_limit_window_seconds=max(1, int(args.rate_limit_window_seconds)),
     )
     app = create_app(config)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")

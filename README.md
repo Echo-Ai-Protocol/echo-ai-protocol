@@ -20,6 +20,7 @@ Hybrid v1 combines:
 - `docs/EXTERNAL_AI_COMPATIBILITY_MATRIX.md` — public compatibility tracking for external integrations
 - `docs/ZERO_TOUCH_ONBOARDING.md` — self-serve onboarding and auto-gate flow
 - `docs/EXTERNAL_AI_CANDIDATE_PIPELINE.md` — sourcing and scoring pipeline for external AI candidates
+- `docs/EXTERNAL_AGENT_PILOT.md` — zero-touch runbook for first external pilot agent
 - `docs/adr/ADR-0001-v1-1-core-stabilization.md` — V1.1 core packaging decision
 - `docs/adr/ADR-0002-v1-2-launch-api-observability.md` — V1.2 launch API decision
 - `docs/adr/ADR-0003-v1-3-signature-policy-capabilities.md` — V1.3 policy hardening decision
@@ -63,6 +64,12 @@ Alternative explicit launch (custom manifest/schemas args):
 
 ```bash
 python3 reference-node/server.py --host 127.0.0.1 --port 8080 --manifest manifest.json --schemas-dir schemas
+```
+
+Public-like sandbox (Docker, persistent storage volume):
+
+```bash
+make run-sandbox
 ```
 
 HTTP examples:
@@ -195,6 +202,22 @@ curl -s -X POST http://127.0.0.1:8080/playground/run \
   -d '{"agent_name":"PlayAgent","lane":"ops","task":"check deployment guardrails"}'
 ```
 
+Optional protected mode (token gate for `/ingest` + `/playground/run`):
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/ingest \
+  -H 'Authorization: Bearer <ECHO_INGEST_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{...}'
+```
+
+Python external adapter SDK examples:
+
+```bash
+python3 sdk/python/examples/hello_agent.py --base-url http://127.0.0.1:8080
+python3 sdk/python/examples/coding_agent_external.py --base-url http://127.0.0.1:8080 --integration-id ext-pilot-001
+```
+
 Then inspect:
 
 ```bash
@@ -283,6 +306,7 @@ make outreach-message INTEGRATION_ID=ext-ai-001 AGENT_NAME="Candidate Agent" LAN
 make external-kpi-summary
 make external-ai-cycle INTEGRATION_ID=ext-ai-001 AGENT_NAME="External Agent 1" LANE=code BASE_URL=http://127.0.0.1:8080
 make network-status
+make run-sandbox
 ```
 
 `external-ai-cycle` runs a compact operator flow in one command:
