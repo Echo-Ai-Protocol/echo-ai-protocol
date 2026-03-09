@@ -638,12 +638,14 @@ def create_app(config: NodeConfig) -> FastAPI:
             idempotency_key=str(envelope.idempotency_key or ""),
         )
         agent_did = _build_agent_did(integration_id=integration_id, agent_name=agent_name)
-        agent_registered = core.ensure_agent_registry_entry(
+        pre_rows = core.load_agent_registry(config.storage_root)
+        pre_exists = any(str(row.get("agent_did", "")) == agent_did for row in pre_rows)
+        out = _validate_and_store(object_type=object_type, obj=mapped, skip_signature=False)
+        core.ensure_agent_registry_entry(
             storage_root=config.storage_root,
             object_type=object_type,
             obj=mapped,
         )
-        out = _validate_and_store(object_type=object_type, obj=mapped, skip_signature=False)
         id_field = core.ID_FIELD_MAP[object_type]
         object_id = str(mapped.get(id_field, ""))
         response = {
@@ -651,7 +653,7 @@ def create_app(config: NodeConfig) -> FastAPI:
             "object_type": object_type,
             "object_id": object_id,
             "agent_did": agent_did,
-            "agent_registered": bool(agent_registered),
+            "agent_registered": bool(not pre_exists),
         }
         for key in ("path", "fingerprint", "duplicate_of"):
             if key in out:
@@ -704,13 +706,15 @@ def create_app(config: NodeConfig) -> FastAPI:
             "signature": "TEST_SIGNATURE",
         }
 
-        agent_registered = core.ensure_agent_registry_entry(
+        pre_rows = core.load_agent_registry(config.storage_root)
+        pre_exists = any(str(row.get("agent_did", "")) == agent_did for row in pre_rows)
+        eo_store = _validate_and_store(object_type="eo", obj=eo_obj, skip_signature=False)
+        trace_store = _validate_and_store(object_type="trace", obj=trace_obj, skip_signature=False)
+        core.ensure_agent_registry_entry(
             storage_root=config.storage_root,
             object_type="trace",
             obj=trace_obj,
         )
-        eo_store = _validate_and_store(object_type="eo", obj=eo_obj, skip_signature=False)
-        trace_store = _validate_and_store(object_type="trace", obj=trace_obj, skip_signature=False)
 
         return {
             "status": "ok",
@@ -718,7 +722,7 @@ def create_app(config: NodeConfig) -> FastAPI:
             "eo_id": eo_id,
             "trace_id": trace_id,
             "agent_did": agent_did,
-            "agent_registered": bool(agent_registered),
+            "agent_registered": bool(not pre_exists),
             "eo_status": str(eo_store.get("status", "stored")),
             "trace_status": str(trace_store.get("status", "stored")),
         }
