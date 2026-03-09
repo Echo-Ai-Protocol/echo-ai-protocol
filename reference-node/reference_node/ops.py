@@ -129,12 +129,17 @@ def _parse_lane_and_integration_from_object_id(object_type: str, obj: Dict[str, 
     id_field = ID_FIELD_MAP.get(object_type, "")
     raw = obj.get(id_field)
     if not isinstance(raw, str):
-        return {"integration_id": "", "lane": ""}
+        return {"integration_id": "", "lane": "", "agent_name": ""}
     parts = [p for p in raw.split(".") if p]
     # Expected seed shape: echo.<type>.agent.<integration_id>.<lane>.<task>.<run>
     if len(parts) >= 6 and parts[0] == "echo" and parts[2] == "agent":
-        return {"integration_id": parts[3], "lane": parts[4]}
-    return {"integration_id": "", "lane": ""}
+        agent_name = ""
+        # Optional adapter marker:
+        # echo.<type>.agent.<integration>.<lane>.by.<agent_name>.<token>
+        if len(parts) >= 8 and parts[5] == "by":
+            agent_name = parts[6]
+        return {"integration_id": parts[3], "lane": parts[4], "agent_name": agent_name}
+    return {"integration_id": "", "lane": "", "agent_name": ""}
 
 
 def _metadata_for_registry(object_type: str, obj: Dict[str, Any]) -> Dict[str, str] | None:
@@ -154,7 +159,7 @@ def _metadata_for_registry(object_type: str, obj: Dict[str, Any]) -> Dict[str, s
 
     integration_id = did_parts["integration_id"] or id_parts["integration_id"] or "unknown"
     lane = id_parts["lane"] or "unknown"
-    agent_name = did_parts["agent_name"] or lane or "unknown"
+    agent_name = did_parts["agent_name"] or id_parts.get("agent_name", "") or lane or "unknown"
 
     if not agent_did:
         agent_did = f"did:echo:agent.{integration_id}.{agent_name}"
@@ -165,6 +170,37 @@ def _metadata_for_registry(object_type: str, obj: Dict[str, Any]) -> Dict[str, s
         "agent_name": agent_name,
         "lane": lane,
     }
+
+
+def ensure_agent_registry_entry(storage_root: Path, object_type: str, obj: Dict[str, Any]) -> bool:
+    meta = _metadata_for_registry(object_type, obj)
+    if meta is None:
+        return False
+
+    created_at_raw = obj.get("created_at")
+    created_at = created_at_raw if isinstance(created_at_raw, str) and created_at_raw.strip() else utc_now()
+
+    rows = load_agent_registry(storage_root)
+    for row in rows:
+        if row.get("agent_did") == meta["agent_did"]:
+            return False
+
+    rows.append(
+        {
+            "agent_did": meta["agent_did"],
+            "integration_id": meta["integration_id"],
+            "agent_name": meta["agent_name"],
+            "lane": meta["lane"],
+            "first_seen": created_at,
+            "last_seen": created_at,
+            "eo_created": 0,
+            "rr_created": 0,
+            "trace_created": 0,
+            "errors": 0,
+        }
+    )
+    save_agent_registry(storage_root, rows)
+    return True
 
 
 def update_agent_registry_on_store(storage_root: Path, object_type: str, obj: Dict[str, Any]) -> None:

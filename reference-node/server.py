@@ -3,6 +3,8 @@
 
 Endpoints:
 - POST /objects
+- POST /ingest
+- POST /playground/run
 - GET /objects/{type}/{object_id}
 - GET /search
 - GET /bundles/export
@@ -18,6 +20,9 @@ Endpoints:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
@@ -80,6 +85,22 @@ class SearchOut(BaseModel):
     results: List[Dict[str, Any]]
 
 
+class IngestIn(BaseModel):
+    integration_id: str
+    agent_name: str
+    lane: str
+    object_type: str
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    idempotency_key: str = ""
+
+
+class PlaygroundRunIn(BaseModel):
+    agent_name: str
+    lane: str
+    task: str
+    integration_id: str = "playground"
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -94,6 +115,179 @@ def _normalize_unit_interval(value: float) -> float:
     if value <= 1.0:
         return max(0.0, min(value, 1.0))
     return max(0.0, min(value / 100.0, 1.0))
+
+
+_TRACE_ACTIVITY_TYPES = {"PUBLISH_EO", "REUSE_EO", "ISSUE_RR", "ASK", "EVALUATE"}
+_EO_SHARE_LEVELS = {"PRIVATE", "FEDERATED", "GLOBAL_ABSTRACT"}
+_RR_VERDICTS = {"SUCCESS", "PARTIAL", "FAIL"}
+
+
+def _stable_slug(value: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9._:-]+", "-", value.strip().lower())
+    return normalized.strip("-") or "agent"
+
+
+def _utc_now() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _pick_text(payload: Dict[str, Any], keys: List[str], default: str) -> str:
+    for key in keys:
+        raw = payload.get(key)
+        if isinstance(raw, str) and raw.strip():
+            text = raw.strip()
+            if len(text) >= 3:
+                return text
+    return default
+
+
+def _coerce_created_at(payload: Dict[str, Any], fallback: Any = 0) -> Any:
+    raw = payload.get("created_at")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    if isinstance(raw, int) and raw >= 0:
+        return raw
+    return fallback
+
+
+def _coerce_signature(payload: Dict[str, Any]) -> str:
+    raw = payload.get("signature")
+    if isinstance(raw, str) and len(raw.strip()) >= 8:
+        return raw.strip()
+    return "TEST_SIGNATURE"
+
+
+def _coerce_outcome_metrics(payload: Dict[str, Any]) -> Dict[str, Any]:
+    raw = payload.get("outcome_metrics")
+    metrics = raw if isinstance(raw, dict) else {}
+    eff = _as_float(metrics.get("effectiveness_score"))
+    stab = _as_float(metrics.get("stability_score"))
+    iters = metrics.get("iterations")
+    if not isinstance(iters, int) or iters < 0:
+        iters = 1
+    if eff is None:
+        eff = 0.5
+    if stab is None:
+        stab = 0.5
+    return {
+        "effectiveness_score": float(eff),
+        "stability_score": float(stab),
+        "iterations": int(iters),
+    }
+
+
+def _ingest_token(
+    integration_id: str,
+    agent_name: str,
+    lane: str,
+    object_type: str,
+    payload: Dict[str, Any],
+    idempotency_key: str,
+) -> str:
+    if isinstance(idempotency_key, str) and idempotency_key.strip():
+        return _stable_slug(idempotency_key)[:48]
+    basis = {
+        "integration_id": integration_id,
+        "agent_name": agent_name,
+        "lane": lane,
+        "object_type": object_type,
+        "payload": payload,
+    }
+    digest = hashlib.sha256(core.canonical_json_payload(basis).encode("utf-8")).hexdigest()
+    return digest[:16]
+
+
+def _build_agent_did(integration_id: str, agent_name: str) -> str:
+    return f"did:echo:agent.{_stable_slug(integration_id)}.{_stable_slug(agent_name)}"
+
+
+def _build_ingest_object(
+    integration_id: str,
+    agent_name: str,
+    lane: str,
+    object_type: str,
+    payload: Dict[str, Any],
+    idempotency_key: str,
+) -> Dict[str, Any]:
+    integration_slug = _stable_slug(integration_id)
+    lane_slug = _stable_slug(lane)
+    agent_slug = _stable_slug(agent_name)
+    token = _ingest_token(integration_id, agent_name, lane, object_type, payload, idempotency_key)
+    agent_did = _build_agent_did(integration_id, agent_name)
+
+    if object_type == "eo":
+        eo_id = payload.get("eo_id")
+        if not isinstance(eo_id, str) or not eo_id.strip():
+            eo_id = f"echo.eo.agent.{integration_slug}.{lane_slug}.by.{agent_slug}.{token}"
+        share_level = str(payload.get("share_level", "FEDERATED")).strip().upper()
+        if share_level not in _EO_SHARE_LEVELS:
+            share_level = "FEDERATED"
+        return {
+            "eo_id": eo_id.strip(),
+            "problem_embedding": _pick_text(payload, ["problem_embedding", "problem", "topic"], "problem::external"),
+            "constraints_embedding": _pick_text(
+                payload, ["constraints_embedding", "constraints"], f"constraints::{lane_slug}"
+            ),
+            "solution_embedding": _pick_text(
+                payload, ["solution_embedding", "solution", "summary"], "solution::external"
+            ),
+            "outcome_metrics": _coerce_outcome_metrics(payload),
+            "confidence_score": float(_as_float(payload.get("confidence_score")) or 0.6),
+            "share_level": share_level,
+            "created_at": _coerce_created_at(payload, fallback=0),
+            "protocol": "ECHO/1.0",
+            "signature": _coerce_signature(payload),
+        }
+
+    if object_type == "trace":
+        trace_id = payload.get("trace_id")
+        if not isinstance(trace_id, str) or not trace_id.strip():
+            trace_id = f"echo.trace.agent.{integration_slug}.{lane_slug}.by.{agent_slug}.{token}"
+        activity_type = str(payload.get("activity_type", "PUBLISH_EO")).strip().upper()
+        if activity_type not in _TRACE_ACTIVITY_TYPES:
+            activity_type = "PUBLISH_EO"
+        refs = payload.get("refs")
+        if isinstance(refs, list):
+            refs_out = [str(v) for v in refs if isinstance(v, str) and v.strip()]
+        else:
+            refs_out = []
+        return {
+            "trace_id": trace_id.strip(),
+            "agent_did": agent_did,
+            "domain_embedding": _pick_text(payload, ["domain_embedding", "domain"], f"domain::{lane_slug}"),
+            "activity_type": activity_type,
+            "refs": refs_out,
+            "created_at": _coerce_created_at(payload, fallback=0),
+            "ttl_seconds": int(payload.get("ttl_seconds", 3600))
+            if isinstance(payload.get("ttl_seconds"), int) and int(payload.get("ttl_seconds", 0)) > 0
+            else 3600,
+            "protocol": "ECHO/1.0",
+            "signature": _coerce_signature(payload),
+        }
+
+    rr_id = payload.get("rr_id")
+    if not isinstance(rr_id, str) or not rr_id.strip():
+        rr_id = f"echo.rr.agent.{integration_slug}.{lane_slug}.by.{agent_slug}.{token}"
+    verdict = str(payload.get("verdict", "PARTIAL")).strip().upper()
+    if verdict not in _RR_VERDICTS:
+        verdict = "PARTIAL"
+    target_eo_id = payload.get("target_eo_id")
+    if not isinstance(target_eo_id, str) or not target_eo_id.strip():
+        target_eo_id = f"echo.eo.agent.{integration_slug}.{lane_slug}.by.{agent_slug}.external-target"
+    return {
+        "rr_id": rr_id.strip(),
+        "issuer_agent_did": agent_did,
+        "target_eo_id": target_eo_id.strip(),
+        "context_embedding": _pick_text(payload, ["context_embedding", "context"], "context::external"),
+        "applied_constraints_embedding": _pick_text(
+            payload, ["applied_constraints_embedding", "constraints_embedding", "constraints"], "constraints::external"
+        ),
+        "outcome_metrics": _coerce_outcome_metrics(payload),
+        "verdict": verdict,
+        "created_at": _coerce_created_at(payload, fallback=0),
+        "protocol": "ECHO/1.0",
+        "signature": _coerce_signature(payload),
+    }
 
 
 def _load_rr_objects(storage_root: Path) -> List[Dict[str, Any]]:
@@ -329,6 +523,8 @@ def _bootstrap_payload(config: NodeConfig) -> Dict[str, Any]:
         "endpoints": {
             "health": {"method": "GET", "path": "/health"},
             "store_object": {"method": "POST", "path": "/objects"},
+            "ingest": {"method": "POST", "path": "/ingest"},
+            "playground_run": {"method": "POST", "path": "/playground/run"},
             "get_object": {"method": "GET", "path": "/objects/{type}/{object_id}"},
             "search": {"method": "GET", "path": "/search"},
             "stats": {"method": "GET", "path": "/stats"},
@@ -353,6 +549,7 @@ def _bootstrap_payload(config: NodeConfig) -> Dict[str, Any]:
                 ],
             },
             "search_ranked": "/search?type=eo&field=eo_id&op=contains&value=echo.eo&rank=true&explain=true",
+            "ingest_eo": "/ingest",
             "stats_with_history": "/stats?history=10",
             "sdk_python_quickstart": "python3 sdk/python/quickstart.py --base-url http://127.0.0.1:8080",
         },
@@ -371,6 +568,36 @@ def create_app(config: NodeConfig) -> FastAPI:
     app = FastAPI(title="ECHO Reference Node", version="0.9")
     app.state.config = config
 
+    def _validate_and_store(object_type: str, obj: Dict[str, Any], skip_signature: bool = False) -> Dict[str, Any]:
+        if object_type not in core.TYPE_TO_FAMILY:
+            raise HTTPException(status_code=400, detail=f"Unknown type: {object_type}")
+        if not isinstance(obj, dict):
+            raise HTTPException(status_code=400, detail="object must be a JSON object")
+        if config.require_signature and skip_signature:
+            raise HTTPException(
+                status_code=422,
+                detail="skip_signature is disabled when server require_signature policy is enabled",
+            )
+
+        errors = core.validate_object(
+            object_type=object_type,
+            obj=obj,
+            manifest_path=config.manifest_path,
+            schemas_dir=config.schemas_dir,
+            skip_signature=skip_signature,
+        )
+        if errors:
+            raise HTTPException(status_code=422, detail={"errors": errors})
+
+        try:
+            return core.store_object_idempotent(
+                storage_root=config.storage_root,
+                object_type=object_type,
+                obj=obj,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Store failed: {exc}") from exc
+
     @app.get("/health")
     def health() -> Dict[str, Any]:
         return {
@@ -383,39 +610,118 @@ def create_app(config: NodeConfig) -> FastAPI:
 
     @app.post("/objects")
     def post_objects(payload: ObjectIn) -> Dict[str, Any]:
-        object_type = payload.type
-        obj = payload.object_json
-
-        if object_type not in core.TYPE_TO_FAMILY:
-            raise HTTPException(status_code=400, detail=f"Unknown type: {object_type}")
-        if not isinstance(obj, dict):
-            raise HTTPException(status_code=400, detail="object_json must be a JSON object")
-        if config.require_signature and payload.skip_signature:
-            raise HTTPException(
-                status_code=422,
-                detail="skip_signature is disabled when server require_signature policy is enabled",
-            )
-
-        errors = core.validate_object(
-            object_type=object_type,
-            obj=obj,
-            manifest_path=config.manifest_path,
-            schemas_dir=config.schemas_dir,
+        return _validate_and_store(
+            object_type=payload.type,
+            obj=payload.object_json,
             skip_signature=payload.skip_signature,
         )
-        if errors:
-            raise HTTPException(status_code=422, detail={"errors": errors})
 
-        try:
-            out = core.store_object_idempotent(
-                storage_root=config.storage_root,
-                object_type=object_type,
-                obj=obj,
-            )
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Store failed: {exc}") from exc
+    @app.post("/ingest")
+    def post_ingest(envelope: IngestIn) -> Dict[str, Any]:
+        integration_id = str(envelope.integration_id).strip()
+        agent_name = str(envelope.agent_name).strip()
+        lane = str(envelope.lane).strip()
+        object_type = str(envelope.object_type).strip().lower()
+        if not integration_id or not agent_name or not lane:
+            raise HTTPException(status_code=400, detail="integration_id, agent_name, lane must be non-empty")
+        if object_type not in {"eo", "trace", "rr"}:
+            raise HTTPException(status_code=400, detail="object_type must be one of: eo|trace|rr")
+        if not isinstance(envelope.payload, dict):
+            raise HTTPException(status_code=400, detail="payload must be a JSON object")
 
-        return out
+        mapped = _build_ingest_object(
+            integration_id=integration_id,
+            agent_name=agent_name,
+            lane=lane,
+            object_type=object_type,
+            payload=envelope.payload,
+            idempotency_key=str(envelope.idempotency_key or ""),
+        )
+        agent_did = _build_agent_did(integration_id=integration_id, agent_name=agent_name)
+        agent_registered = core.ensure_agent_registry_entry(
+            storage_root=config.storage_root,
+            object_type=object_type,
+            obj=mapped,
+        )
+        out = _validate_and_store(object_type=object_type, obj=mapped, skip_signature=False)
+        id_field = core.ID_FIELD_MAP[object_type]
+        object_id = str(mapped.get(id_field, ""))
+        response = {
+            "status": str(out.get("status", "stored")),
+            "object_type": object_type,
+            "object_id": object_id,
+            "agent_did": agent_did,
+            "agent_registered": bool(agent_registered),
+        }
+        for key in ("path", "fingerprint", "duplicate_of"):
+            if key in out:
+                response[key] = out.get(key)
+        return response
+
+    @app.post("/playground/run")
+    def post_playground_run(req: PlaygroundRunIn) -> Dict[str, Any]:
+        agent_name = str(req.agent_name).strip()
+        lane = str(req.lane).strip()
+        task = str(req.task).strip()
+        integration_id = str(req.integration_id).strip() or "playground"
+        if not agent_name or not lane or not task:
+            raise HTTPException(status_code=400, detail="agent_name, lane, task must be non-empty")
+
+        integration_slug = _stable_slug(integration_id)
+        lane_slug = _stable_slug(lane)
+        agent_slug = _stable_slug(agent_name)
+        run_token = f"{int(time.time())}-{hashlib.sha256(task.encode('utf-8')).hexdigest()[:8]}"
+        agent_did = _build_agent_did(integration_id=integration_id, agent_name=agent_name)
+        eo_id = f"echo.eo.agent.{integration_slug}.{lane_slug}.by.{agent_slug}.playground.{run_token}"
+        trace_id = f"echo.trace.agent.{integration_slug}.{lane_slug}.by.{agent_slug}.playground.{run_token}"
+        now = _utc_now()
+
+        eo_obj = {
+            "eo_id": eo_id,
+            "problem_embedding": f"task::{task}",
+            "constraints_embedding": f"lane::{lane_slug}",
+            "solution_embedding": "playground::auto-generated-solution",
+            "outcome_metrics": {
+                "effectiveness_score": 0.5,
+                "stability_score": 0.5,
+                "iterations": 1,
+            },
+            "confidence_score": 0.6,
+            "share_level": "FEDERATED",
+            "created_at": now,
+            "protocol": "ECHO/1.0",
+            "signature": "TEST_SIGNATURE",
+        }
+        trace_obj = {
+            "trace_id": trace_id,
+            "agent_did": agent_did,
+            "domain_embedding": f"playground::{lane_slug}",
+            "activity_type": "PUBLISH_EO",
+            "refs": [eo_id],
+            "created_at": now,
+            "ttl_seconds": 3600,
+            "protocol": "ECHO/1.0",
+            "signature": "TEST_SIGNATURE",
+        }
+
+        agent_registered = core.ensure_agent_registry_entry(
+            storage_root=config.storage_root,
+            object_type="trace",
+            obj=trace_obj,
+        )
+        eo_store = _validate_and_store(object_type="eo", obj=eo_obj, skip_signature=False)
+        trace_store = _validate_and_store(object_type="trace", obj=trace_obj, skip_signature=False)
+
+        return {
+            "status": "ok",
+            "object_id": eo_id,
+            "eo_id": eo_id,
+            "trace_id": trace_id,
+            "agent_did": agent_did,
+            "agent_registered": bool(agent_registered),
+            "eo_status": str(eo_store.get("status", "stored")),
+            "trace_status": str(trace_store.get("status", "stored")),
+        }
 
     @app.get("/objects/{type}/{object_id}")
     def get_object(type: str, object_id: str) -> Dict[str, Any]:
